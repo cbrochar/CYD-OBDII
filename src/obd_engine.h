@@ -14,7 +14,7 @@ inline uint16_t parseHexBytes(String rawResponse, int startCharIndex) {
 // Low-Level Custom Ford J1850 Query Pipe with Diagnostics
 inline String queryCustomPID(const char* header, const char* pid) {
     if (!isConnected) return "";
-    
+
     logDebug("OBD_BUS", "Setting target header to ATSH" + String(header));
     SerialBT.print("ATSH");
     SerialBT.print(header);
@@ -25,7 +25,7 @@ inline String queryCustomPID(const char* header, const char* pid) {
     logDebug("OBD_BUS", "Sending hex query: " + String(pid));
     SerialBT.print(pid);
     SerialBT.print("\r");
-    
+
     unsigned long timeout = millis();
     String response = "";
     while ((millis() - timeout < 700)) {
@@ -38,7 +38,7 @@ inline String queryCustomPID(const char* header, const char* pid) {
             }
         }
     }
-    
+
     if (response.length() == 0) {
         logDebug("OBD_WARN", "Timeout waiting for bus response on PID " + String(pid));
     } else {
@@ -47,30 +47,48 @@ inline String queryCustomPID(const char* header, const char* pid) {
     return response;
 }
 
-// Background Bluetooth Connection Sequence
+// Bluetooth connection attempt. Blocking, so it runs inside btConnectTask (core 0),
+// NOT in loop(). It must not touch the display or the metric Strings.
 inline void tryBluetoothConnect() {
     logDebug("BT_CON", "Attempting background handshake with 'OBDII'...");
     if (SerialBT.connect(const_cast<uint8_t*>(ELM_MAC))) {
         logDebug("BT_CON", "Success! RFCOMM data channel initialized.");
         myELM.begin(SerialBT, false, 2000);
-        
+
         SerialBT.print("ATSP1\r");
         delay(400);
         while(SerialBT.available()) SerialBT.read(); // Clear channel cache
-        
-        isConnected = true;
-        tft.fillScreen(TFT_BLACK);
+
+        isConnected = true;   // set last; loop() notices the change and updates the UI
         logDebug("SYS_INIT", "Link active. Resuming standard sensor loops.");
     } else {
-        logDebug("BT_WARN", "Handshake failed. Maintaining offline graphic state.");
+        logDebug("BT_WARN", "Handshake failed. Continuing in demo mode.");
         isConnected = false;
     }
+}
+
+// Background task: keeps retrying the connection while offline, so loop()
+// (touch + drawing) is never blocked by a slow/failed connect.
+inline void btConnectTask(void* param) {
+    for (;;) {
+        if (!isConnected) {
+            btAttempting = true;
+            tryBluetoothConnect();
+            btAttempting = false;
+            lastBtRetry = millis();
+        }
+        vTaskDelay(pdMS_TO_TICKS(BT_RETRY_INTERVAL_MS));
+    }
+}
+
+inline void startBluetoothTask() {
+    xTaskCreatePinnedToCore(btConnectTask, "btConnect", 8192, NULL, 1, NULL, 0);
 }
 
 // Scan for Stored Diagnostic Trouble Codes (Mode 03)
 inline void checkStoredDTCs() {
     if (!isConnected) return;
-    
+
     logDebug("OBD_DTC", "Scanning Mode 03 diagnostic trouble registers...");
     SerialBT.print("03\r");
     delay(100);
@@ -79,7 +97,7 @@ inline void checkStoredDTCs() {
         char c = SerialBT.read();
         if(c != ' ' && c != '\r' && c != '\n') resp += c;
     }
-    
+
     if (resp.length() > 4 && !resp.startsWith("4300")) {
         hasDTCWarning = true;
         logDebug("OBD_ALERT", "Active Diagnostic Trouble Codes identified! Raw: " + resp);
@@ -89,12 +107,12 @@ inline void checkStoredDTCs() {
     }
 }
 
-// Main Parametric Scanning Sweep Routine
+// Main Parametric Scanning Sweep Routine (only called while connected)
 inline void updateVehicleData() {
     if (!isConnected) return;
-    
+
     logDebug("SYS_POLL", "Executing routine vehicle sensor sweep...");
-    
+
     // 1. Transfer Case Status (4x4 Control Module)
     String raw4x4 = queryCustomPID("418F02", "2211B2");
     if (raw4x4.startsWith("6211B2") && raw4x4.length() >= 8) {
@@ -131,8 +149,9 @@ inline void updateVehicleData() {
     }
 
     // 5. Transmission Fluid Temperature (TFT)
+    // FIX: response prefix now matches the PID that is actually requested (221E1C -> 621E1C).
     String rawTFT = queryCustomPID("7E0", "221E1C");
-    if (rawTFT.startsWith("6211E1")) {
+    if (rawTFT.startsWith("621E1C")) {
          float tftF = ((int16_t)parseHexBytes(rawTFT, 6) / 8.0);
          valTFT = String(tftF, 0) + " F";
     }
@@ -143,6 +162,19 @@ inline void updateVehicleData() {
         valVolts = String(battery, 1) + "V";
     } else {
         logDebug("ELM_ERR", "ELMduino tracking state failure reading voltage.");
+    }
+
+    // 7. Engine RPM (standard Mode 01 PID 0C: ((A*256)+B)/4)
+    String rawRPM = queryCustomPID("7E0", "010C");
+    if (rawRPM.startsWith("410C") && rawRPM.length() >= 8) {
+        valRPM = String((int)(parseHexBytes(rawRPM, 4) / 4));
+    }
+
+    // 8. Vehicle Speed (standard Mode 01 PID 0D: A km/h)
+    String rawSpeed = queryCustomPID("7E0", "010D");
+    if (rawSpeed.startsWith("410D") && rawSpeed.length() >= 6) {
+        long kph = strtol(rawSpeed.substring(4, 6).c_str(), NULL, 16);
+        valSpeed = String((int)(kph * 0.621371)) + " MPH";
     }
 
     checkStoredDTCs();
