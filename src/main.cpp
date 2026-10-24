@@ -25,7 +25,8 @@ void setup() {
     touch.setRotation(1);
     logDebug("TOUCH_INIT", "XPT2046 Driver successfully initialized.");
 
-    if (canvas.createSprite(320, 160) == nullptr) {
+    canvas.setColorDepth(8);   // 8-bit sprite: 320x214 = ~67 KB instead of ~137 KB
+    if (canvas.createSprite(320, CANVAS_H) == nullptr) {
         logDebug("GFX_FATAL", "Canvas sprite allocation failed (out of RAM)!");
     }
 
