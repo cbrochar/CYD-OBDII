@@ -11,40 +11,64 @@ inline uint16_t parseHexBytes(String rawResponse, int startCharIndex) {
     return (uint16_t) strtol(byteHex.c_str(), NULL, 16);
 }
 
-// Low-Level Custom Ford J1850 Query Pipe with Diagnostics
+// Send one command and read everything up to the ELM '>' prompt, so each reply is
+// always matched to the command that asked for it (fixed delays let replies arrive
+// one query late over Bluetooth). Returns the reply without spaces, lines split by '\n'.
+inline String elmCommand(const String& cmd, unsigned long timeoutMs = 500) {
+    while (SerialBT.available()) SerialBT.read();   // drop anything stale
+    SerialBT.print(cmd);
+    SerialBT.print("\r");
+
+    String resp = "";
+    unsigned long start = millis();
+    while (millis() - start < timeoutMs) {
+        if (!SerialBT.available()) continue;
+        char c = SerialBT.read();
+        if (c == '>') return resp;
+        if (c == '\r' || c == '\n') {
+            if (resp.length() > 0 && !resp.endsWith("\n")) resp += '\n';
+        } else if (c != ' ') {
+            resp += c;
+        }
+    }
+    logDebug("OBD_WARN", "Timeout waiting for '>' after " + cmd + ". Raw: " + resp);
+    return resp;
+}
+
+// Header the ELM is currently set to; ATSH is only sent when it changes.
+// Cleared on every new connection, since the adapter is re-initialised.
+static String currentHeader = "";
+
+inline void setHeader(const char* header) {
+    if (currentHeader == header) return;
+    logDebug("OBD_BUS", "Setting target header to ATSH" + String(header));
+    elmCommand("ATSH" + String(header));
+    currentHeader = header;
+}
+
+// Single-frame query. Returns the reply line for this service (e.g. "41..." for 01,
+// "62..." for 22), or the raw reply (NODATA etc.) so callers' prefix checks fail.
 inline String queryCustomPID(const char* header, const char* pid) {
     if (!isConnected) return "";
 
-    logDebug("OBD_BUS", "Setting target header to ATSH" + String(header));
-    SerialBT.print("ATSH");
-    SerialBT.print(header);
-    SerialBT.print("\r");
-    delay(60);
-    while(SerialBT.available()) SerialBT.read(); // Flush channel echoes
+    setHeader(header);
+    String resp = elmCommand(pid);
 
-    logDebug("OBD_BUS", "Sending hex query: " + String(pid));
-    SerialBT.print(pid);
-    SerialBT.print("\r");
-
-    unsigned long timeout = millis();
-    String response = "";
-    while ((millis() - timeout < 700)) {
-        if (SerialBT.available()) {
-            char c = SerialBT.read();
-            if (c == '\r' || c == '\n') {
-                if (response.length() > 0) break;
-            } else if (c != ' ') {
-                response += c;
-            }
+    char replyService[3] = {(char)(pid[0] + 4), pid[1], 0};   // 01 -> 41, 22 -> 62
+    int lineStart = 0;
+    while (lineStart < (int)resp.length()) {
+        int lineEnd = resp.indexOf('\n', lineStart);
+        if (lineEnd < 0) lineEnd = resp.length();
+        String line = resp.substring(lineStart, lineEnd);
+        lineStart = lineEnd + 1;
+        if (line.startsWith(replyService)) {
+            logDebug("OBD_BUS", String(pid) + " -> " + line);
+            return line;
         }
     }
-
-    if (response.length() == 0) {
-        logDebug("OBD_WARN", "Timeout waiting for bus response on PID " + String(pid));
-    } else {
-        logDebug("OBD_BUS", "Raw payload answer received: " + response);
-    }
-    return response;
+    resp.replace("\n", " ");
+    logDebug("OBD_WARN", String(pid) + " -> no valid reply: " + resp);
+    return resp;
 }
 
 // Bluetooth connection attempt. Blocking, so it runs inside btConnectTask (core 0),
@@ -60,6 +84,7 @@ inline void tryBluetoothConnect() {
         SerialBT.print("ATSP6\r");
         delay(400);
         while(SerialBT.available()) SerialBT.read(); // Clear channel cache
+        currentHeader = "";
 
         isConnected = true;   // set last; loop() notices the change and updates the UI
         logDebug("SYS_INIT", "Link active. Resuming standard sensor loops.");
@@ -100,23 +125,8 @@ inline String decodeDTC(uint16_t raw) {
 // then "0:..." "1:..." lines, so read until the ELM '>' prompt and stitch them together.
 // Returns "" if no line starting with replyPrefix came back.
 inline String queryMultiFrame(const char* header, const char* cmd, const char* replyPrefix) {
-    SerialBT.print("ATSH");
-    SerialBT.print(header);
-    SerialBT.print("\r");
-    delay(60);
-    while(SerialBT.available()) SerialBT.read();
-    SerialBT.print(cmd);
-    SerialBT.print("\r");
-
-    String resp = "";
-    unsigned long start = millis();
-    while (millis() - start < 1500) {
-        if (!SerialBT.available()) continue;
-        char c = SerialBT.read();
-        if (c == '>') break;
-        if (c == '\r' || c == '\n') resp += '\n';
-        else if (c != ' ') resp += c;
-    }
+    setHeader(header);
+    String resp = elmCommand(cmd, 1500);
 
     String payload = "";
     int lineStart = 0;
@@ -206,20 +216,14 @@ inline void readWheelSpeed(const char* pid, String& out) {
     }
 }
 
-inline void updateAbsData() {
-    readWheelSpeed(ABS_PID_LF, valWheelLF);
-    readWheelSpeed(ABS_PID_RF, valWheelRF);
-    readWheelSpeed(ABS_PID_REAR, valWheelRear);
-    checkAbsDTCs();
-}
+inline void pollWheelLF()   { readWheelSpeed(ABS_PID_LF,   valWheelLF); }
+inline void pollWheelRF()   { readWheelSpeed(ABS_PID_RF,   valWheelRF); }
+inline void pollWheelRear() { readWheelSpeed(ABS_PID_REAR, valWheelRear); }
 
-// Main Parametric Scanning Sweep Routine (only called while connected)
-inline void updateVehicleData() {
-    if (!isConnected) return;
+// ---- Engine / chassis values (one function per card) ------------------------
 
-    logDebug("SYS_POLL", "Executing routine vehicle sensor sweep...");
-
-    // 1. Transfer Case Status (4x4 Control Module)
+// Transfer Case Status (4x4 Control Module)
+inline void pollTCase() {
     String raw4x4 = queryCustomPID("418F02", "2211B2");
     if (raw4x4.startsWith("6211B2") && raw4x4.length() >= 8) {
         char state = raw4x4.charAt(6);
@@ -227,10 +231,12 @@ inline void updateVehicleData() {
         else if (state == '2') valTCase = "4H";
         else if (state == '4') valTCase = "4L";
     }
+}
 
-    // 2. Turbo Boost = MAP - BARO (standard PIDs 0B and 33: A kPa, confirmed on this truck)
-    //    Baro barely changes, so it is read once and cached. PID 0B tops out at 255 kPa,
-    //    so the display caps at roughly 22 psi of boost.
+// Turbo Boost = MAP - BARO (standard PIDs 0B and 33: A kPa, confirmed on this truck)
+// Baro barely changes, so it is read once and cached. PID 0B tops out at 255 kPa,
+// so the display caps at roughly 22 psi of boost.
+inline void pollBoost() {
     static float baroKPa = 0.0;
     if (baroKPa <= 0.0) {
         String rawBARO = queryCustomPID("7E0", "0133");
@@ -244,62 +250,92 @@ inline void updateVehicleData() {
         float boost = (mapKPa - (baroKPa > 0.0 ? baroKPa : 101.3)) * 0.145038;
         valBoost = String(boost < 0 ? 0.0 : boost, 1);
     }
+}
 
-    // 3. FICM Module Status (Powerstroke Main Board Health)
+// FICM Main Power (Powerstroke injector driver supply, ~48 V nominal)
+// Raw value is volts x 256: e.g. 0x2F80 = 12160 -> 47.5 V (seen in the truck log).
+inline void pollFICM() {
     String rawFICM = queryCustomPID("7E0", "2209D0");
-    if (rawFICM.startsWith("6209D0")) {
-        float volts = (float)parseHexBytes(rawFICM, 6) / 100.0;
+    if (rawFICM.startsWith("6209D0") && rawFICM.length() >= 10) {
+        float volts = (float)parseHexBytes(rawFICM, 6) / 256.0;
         valFICM = String(volts, 1);
         if (volts < 45.0) {
             logDebug("SYS_ALERT", "CRITICAL - FICM MAIN POWER DIPPED DANGEROUSLY TO: " + valFICM);
         }
     }
+}
 
-    // 4. Engine Coolant Temperature (ECT)
+// Engine Coolant Temperature (ECT)
+inline void pollECT() {
     String rawECT = queryCustomPID("7E0", "221139");
-    if (rawECT.startsWith("621139")) {
+    if (rawECT.startsWith("621139") && rawECT.length() >= 10) {
         float ectC = (int16_t)parseHexBytes(rawECT, 6) / 256.0;
         valECT = String((ectC * 1.8) + 32, 0);
     }
+}
 
-    // 5. Transmission Fluid Temperature (TFT)
-    // FIX: response prefix now matches the PID that is actually requested (221E1C -> 621E1C).
+// Transmission Fluid Temperature (TFT)
+inline void pollTFT() {
     String rawTFT = queryCustomPID("7E0", "221E1C");
-    if (rawTFT.startsWith("621E1C")) {
+    if (rawTFT.startsWith("621E1C") && rawTFT.length() >= 10) {
          float tftF = ((int16_t)parseHexBytes(rawTFT, 6) / 8.0);
          valTFT = String(tftF, 0);
     }
+}
 
-    // 6. System Volts (standard Mode 01 PID 42, module voltage: ((A*256)+B)/1000)
+// System Volts (standard Mode 01 PID 42, module voltage: ((A*256)+B)/1000)
+inline void pollVolts() {
     String rawVolts = queryCustomPID("7E0", "0142");
     if (rawVolts.startsWith("4142") && rawVolts.length() >= 8) {
         valVolts = String(parseHexBytes(rawVolts, 4) / 1000.0, 1);
     }
+}
 
-    // 7. Engine RPM (standard Mode 01 PID 0C: ((A*256)+B)/4)
+// Engine RPM (standard Mode 01 PID 0C: ((A*256)+B)/4)
+inline void pollRPM() {
     String rawRPM = queryCustomPID("7E0", "010C");
     if (rawRPM.startsWith("410C") && rawRPM.length() >= 8) {
         valRPM = String((int)(parseHexBytes(rawRPM, 4) / 4));
     }
+}
 
-    // 8. Vehicle Speed (standard Mode 01 PID 0D: A km/h)
+// Vehicle Speed (standard Mode 01 PID 0D: A km/h)
+inline void pollSpeed() {
     String rawSpeed = queryCustomPID("7E0", "010D");
     if (rawSpeed.startsWith("410D") && rawSpeed.length() >= 6) {
         long kph = strtol(rawSpeed.substring(4, 6).c_str(), NULL, 16);
         valSpeed = String((int)(kph * 0.621371));
     }
+}
 
-    // 9. ABS wheel speeds + ABS codes: only polled while the ABS page is on screen (saves
-    //    bus time). Speeds are blanked otherwise so stale ones are never shown; the ABS
-    //    code count is kept, since a stored fault doesn't go stale.
-    if (currentPage == PAGE_ABS) {
-        updateAbsData();
-    } else {
-        valWheelLF = valWheelRF = valWheelRear = "---";
+// Reads only the values on screen (the current page's cards, or the one full-screen
+// gauge) using each metric's poll function. Defined in display_ui.h with the metric table.
+inline void pollVisibleMetrics();
+
+// Main polling routine (only called while connected). Only the values being shown
+// are read, so each refresh is a handful of requests instead of all of them.
+inline void updateVehicleData() {
+    if (!isConnected) return;
+
+    unsigned long start = millis();
+    pollVisibleMetrics();
+    if (currentPage == PAGE_ABS && fullScreenMetric < 0) checkAbsDTCs();   // ABS status card
+
+    // ABS speeds are blanked off their page so stale ones are never shown when you
+    // swipe back; the ABS code count is kept, since a stored fault doesn't go stale.
+    if (currentPage != PAGE_ABS) valWheelLF = valWheelRF = valWheelRear = "---";
+
+    // Engine codes: every refresh on the DTC page, otherwise every DTC_SCAN_INTERVAL_MS
+    // (the status bar warning still needs them)
+    static unsigned long lastDtcScan = 0;
+    if (currentPage == PAGE_DTC || lastDtcScan == 0 || millis() - lastDtcScan > DTC_SCAN_INTERVAL_MS) {
+        lastDtcScan = millis();
+        checkStoredDTCs();
     }
 
-    checkStoredDTCs();
-    logDebug("SYS_POLL", "Sweep done. TCase:" + valTCase + " | Boost:" + valBoost + " | FICM:" + valFICM);
+    logDebug("SYS_POLL", (fullScreenMetric >= 0 ? "Full-screen gauge " + String(fullScreenMetric)
+                                                 : "Page " + String(currentPage))
+                         + " refreshed in " + String(millis() - start) + " ms");
 }
 
 #endif

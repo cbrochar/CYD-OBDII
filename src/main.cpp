@@ -46,8 +46,7 @@ void setup() {
     }
 
     updateStatusBar(true);
-    buildPage(currentPage);
-    canvas.pushSprite(0, CANVAS_Y);
+    drawCurrentScreen();
 }
 
 void loop() {
@@ -68,26 +67,35 @@ void loop() {
         else             loadDemoValues();
         lastBusQuery = 0;                     // force an immediate refresh
         updateStatusBar(true);
-        buildPage(currentPage);
-        canvas.pushSprite(0, CANVAS_Y);
+        drawCurrentScreen();
     }
 
-    // 2. Touch: swipe to the next page (works connected or not)
-    if (touch.touched()) {
+    // 2. Touch: one action per tap (finger must lift before the next tap counts, so a
+    //    held finger can't hit a menu button that appears under it)
+    static bool wasTouched = false;
+    bool touchedNow = touch.touched();
+    if (touchedNow && !wasTouched && millis() - lastTouchDebounce > 250) {
+        lastTouchDebounce = millis();
         TS_Point pt = touch.getPoint();
-        if (millis() - lastTouchDebounce > 400) {
-            lastTouchDebounce = millis();
-            logDebug("TOUCH_ACT", "Screen contact detected! Coordinates -> RawX: " + String(pt.x) + ", RawY: " + String(pt.y));
-            scrollToNextPage();
-        }
+        int sx = constrain(map(pt.x, TOUCH_RAW_X_MIN, TOUCH_RAW_X_MAX, 0, 319), 0, 319);
+        int sy = constrain(map(pt.y, TOUCH_RAW_Y_MIN, TOUCH_RAW_Y_MAX, 0, 239), 0, 239);
+        logDebug("TOUCH_ACT", "Tap -> RawX: " + String(pt.x) + ", RawY: " + String(pt.y) +
+                              " | Screen: " + String(sx) + "," + String(sy));
+        handleTap(sx, sy);
+    }
+    wasTouched = touchedNow;
+
+    // Close the tap menu if nothing was pressed
+    if (menuMetric >= 0 && millis() - menuShownAt > MENU_TIMEOUT_MS) {
+        menuMetric = -1;
+        drawCurrentScreen();
     }
 
-    // 3. Refresh data + page every 2 seconds (live data only when connected)
-    if (millis() - lastBusQuery > 2000) {
+    // 3. Refresh data + page every POLL_INTERVAL_MS (live data only when connected)
+    if (millis() - lastBusQuery > POLL_INTERVAL_MS) {
         lastBusQuery = millis();
         if (isConnected) updateVehicleData();
-        buildPage(currentPage);
-        canvas.pushSprite(0, CANVAS_Y);
+        drawCurrentScreen();
     }
 
     // 4. Keep the status bar current (retry countdown, DTC warning); repaints only on change

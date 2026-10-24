@@ -15,6 +15,15 @@
 #define XPT2046_CLK   25
 #define XPT2046_CS    33
 
+// Touch calibration: raw XPT2046 readings at the screen edges (rotation 1).
+// Typical CYD values; if taps land on the wrong card, tap each corner and copy the
+// RawX/RawY numbers from the TOUCH_ACT serial log into these four constants.
+const int TOUCH_RAW_X_MIN = 200,  TOUCH_RAW_X_MAX = 3700;
+const int TOUCH_RAW_Y_MIN = 240,  TOUCH_RAW_Y_MAX = 3800;
+
+// How long the tap menu (NEXT PAGE / FULL SCREEN) stays up if nothing is pressed
+const unsigned long MENU_TIMEOUT_MS = 4000;
+
 // Display layout / paging
 const int METRICS_PER_PAGE = 4;   // 2 x 2 grid of cards
 const int METRIC_PAGES     = 3;   // card pages; must match the metric table in display_ui.h (12 metrics)
@@ -24,6 +33,12 @@ const int PAGE_DTC         = 3;   // stored trouble code list
 
 // Stored trouble codes kept for the DTC page (3 columns x 5 rows)
 const int MAX_DTCS = 15;
+
+// Live data refresh: the visible page is re-read this often (a refresh takes roughly
+// 100 ms per value, so in practice the page updates as fast as the truck answers)
+const unsigned long POLL_INTERVAL_MS     = 250;
+// Engine trouble codes are re-scanned this often when not on the DTC page
+const unsigned long DTC_SCAN_INTERVAL_MS = 10000;
 
 // How long the background task waits between Bluetooth connection attempts
 const unsigned long BT_RETRY_INTERVAL_MS = 10000;
@@ -47,6 +62,9 @@ extern unsigned long lastBusQuery;
 extern unsigned long lastTouchDebounce;
 extern unsigned long lastBtRetry;
 extern int currentPage;
+extern int menuMetric;              // metric whose tap menu is showing (-1 = none)
+extern unsigned long menuShownAt;
+extern int fullScreenMetric;        // metric shown full screen (-1 = normal pages)
 
 // Shared Metric Buffers
 extern String valTCase;

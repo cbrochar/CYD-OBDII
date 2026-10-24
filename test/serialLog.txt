@@ -1,0 +1,1175 @@
+[0000102916] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000102916] (OBD_BUS): Setting target header to ATSH418F02
+[0000102976] (OBD_BUS): Sending hex query: 2211B2
+[0000103111] (OBD_BUS): Raw payload answer received: NODATA
+[0000103112] (OBD_BUS): Setting target header to ATSH7E0
+[0000103172] (OBD_BUS): Sending hex query: 010B
+[0000103283] (OBD_BUS): Raw payload answer received: 410B65
+[0000103283] (OBD_BUS): Setting target header to ATSH7E0
+[0000103343] (OBD_BUS): Sending hex query: 2209D0
+[0000103350] (OBD_BUS): Raw payload answer received: OK
+[0000103350] (OBD_BUS): Setting target header to ATSH7E0
+[0000103410] (OBD_BUS): Sending hex query: 221139
+[0000103504] (OBD_BUS): Raw payload answer received: 6209D02F80
+[0000103504] (OBD_BUS): Setting target header to ATSH7E0
+[0000103565] (OBD_BUS): Sending hex query: 221E1C
+[0000103574] (OBD_BUS): Raw payload answer received: OK
+[0000103574] (OBD_BUS): Setting target header to ATSH7E0
+[0000103635] (OBD_BUS): Sending hex query: 0142
+[0000103645] (OBD_BUS): Raw payload answer received: OK
+[0000103645] (OBD_BUS): Setting target header to ATSH7E0
+[0000103705] (OBD_BUS): Sending hex query: 010C
+[0000103714] (OBD_BUS): Raw payload answer received: OK
+[0000103714] (OBD_BUS): Setting target header to ATSH7E0
+[0000103775] (OBD_BUS): Sending hex query: 010D
+[0000103784] (OBD_BUS): Raw payload answer received: OK
+[0000103784] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000103854] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000103854] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000104917] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000104917] (OBD_BUS): Setting target header to ATSH418F02
+[0000104977] (OBD_BUS): Sending hex query: 2211B2
+[0000105138] (OBD_BUS): Raw payload answer received: NODATA
+[0000105138] (OBD_BUS): Setting target header to ATSH7E0
+[0000105198] (OBD_BUS): Sending hex query: 010B
+[0000105206] (OBD_BUS): Raw payload answer received: OK
+[0000105207] (OBD_BUS): Setting target header to ATSH7E0
+[0000105267] (OBD_BUS): Sending hex query: 2209D0
+[0000105276] (OBD_BUS): Raw payload answer received: OK
+[0000105277] (OBD_BUS): Setting target header to ATSH7E0
+[0000105337] (OBD_BUS): Sending hex query: 221139
+[0000105350] (OBD_BUS): Raw payload answer received: OK
+[0000105350] (OBD_BUS): Setting target header to ATSH7E0
+[0000105411] (OBD_BUS): Sending hex query: 221E1C
+[0000105420] (OBD_BUS): Raw payload answer received: OK
+[0000105420] (OBD_BUS): Setting target header to ATSH7E0
+[0000105481] (OBD_BUS): Sending hex query: 0142
+[0000105490] (OBD_BUS): Raw payload answer received: OK
+[0000105490] (OBD_BUS): Setting target header to ATSH7E0
+[0000105551] (OBD_BUS): Sending hex query: 010C
+[0000105558] (OBD_BUS): Raw payload answer received: OK
+[0000105559] (OBD_BUS): Setting target header to ATSH7E0
+[0000105619] (OBD_BUS): Sending hex query: 010D
+[0000105704] (OBD_BUS): Raw payload answer received: 410C0AD6
+[0000105704] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000105784] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000105784] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000106918] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000106918] (OBD_BUS): Setting target header to ATSH418F02
+[0000106978] (OBD_BUS): Sending hex query: 2211B2
+[0000106985] (OBD_BUS): Raw payload answer received: OK
+[0000106985] (OBD_BUS): Setting target header to ATSH7E0
+[0000107046] (OBD_BUS): Sending hex query: 010B
+[0000107131] (OBD_BUS): Raw payload answer received: NODATA
+[0000107132] (OBD_BUS): Setting target header to ATSH7E0
+[0000107192] (OBD_BUS): Sending hex query: 2209D0
+[0000107201] (OBD_BUS): Raw payload answer received: OK
+[0000107202] (OBD_BUS): Setting target header to ATSH7E0
+[0000107262] (OBD_BUS): Sending hex query: 221139
+[0000107271] (OBD_BUS): Raw payload answer received: OK
+[0000107272] (OBD_BUS): Setting target header to ATSH7E0
+[0000107332] (OBD_BUS): Sending hex query: 221E1C
+[0000107348] (OBD_BUS): Raw payload answer received: OK
+[0000107348] (OBD_BUS): Setting target header to ATSH7E0
+[0000107408] (OBD_BUS): Sending hex query: 0142
+[0000107416] (OBD_BUS): Raw payload answer received: OK
+[0000107417] (OBD_BUS): Setting target header to ATSH7E0
+[0000107477] (OBD_BUS): Sending hex query: 010C
+[0000107486] (OBD_BUS): Raw payload answer received: OK
+[0000107487] (OBD_BUS): Setting target header to ATSH7E0
+[0000107547] (OBD_BUS): Sending hex query: 010D
+[0000107556] (OBD_BUS): Raw payload answer received: OK
+[0000107557] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000107625] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000107625] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000108919] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000108919] (OBD_BUS): Setting target header to ATSH418F02
+[0000108979] (OBD_BUS): Sending hex query: 2211B2
+[0000108986] (OBD_BUS): Raw payload answer received: OK
+[0000108986] (OBD_BUS): Setting target header to ATSH7E0
+[0000109047] (OBD_BUS): Sending hex query: 010B
+[0000109133] (OBD_BUS): Raw payload answer received: NODATA
+[0000109133] (OBD_BUS): Setting target header to ATSH7E0
+[0000109193] (OBD_BUS): Sending hex query: 2209D0
+[0000109205] (OBD_BUS): Raw payload answer received: OK
+[0000109205] (OBD_BUS): Setting target header to ATSH7E0
+[0000109266] (OBD_BUS): Sending hex query: 221139
+[0000109276] (OBD_BUS): Raw payload answer received: OK
+[0000109276] (OBD_BUS): Setting target header to ATSH7E0
+[0000109337] (OBD_BUS): Sending hex query: 221E1C
+[0000109346] (OBD_BUS): Raw payload answer received: OK
+[0000109347] (OBD_BUS): Setting target header to ATSH7E0
+[0000109407] (OBD_BUS): Sending hex query: 0142
+[0000109416] (OBD_BUS): Raw payload answer received: OK
+[0000109417] (OBD_BUS): Setting target header to ATSH7E0
+[0000109477] (OBD_BUS): Sending hex query: 010C
+[0000109486] (OBD_BUS): Raw payload answer received: OK
+[0000109487] (OBD_BUS): Setting target header to ATSH7E0
+[0000109547] (OBD_BUS): Sending hex query: 010D
+[0000109556] (OBD_BUS): Raw payload answer received: OK
+[0000109557] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000109625] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000109625] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000110920] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000110920] (OBD_BUS): Setting target header to ATSH418F02
+[0000110980] (OBD_BUS): Sending hex query: 2211B2
+[0000110987] (OBD_BUS): Raw payload answer received: OK
+[0000110987] (OBD_BUS): Setting target header to ATSH7E0
+[0000111048] (OBD_BUS): Sending hex query: 010B
+[0000111133] (OBD_BUS): Raw payload answer received: NODATA
+[0000111133] (OBD_BUS): Setting target header to ATSH7E0
+[0000111193] (OBD_BUS): Sending hex query: 2209D0
+[0000111201] (OBD_BUS): Raw payload answer received: OK
+[0000111202] (OBD_BUS): Setting target header to ATSH7E0
+[0000111262] (OBD_BUS): Sending hex query: 221139
+[0000111271] (OBD_BUS): Raw payload answer received: OK
+[0000111272] (OBD_BUS): Setting target header to ATSH7E0
+[0000111332] (OBD_BUS): Sending hex query: 221E1C
+[0000111341] (OBD_BUS): Raw payload answer received: OK
+[0000111342] (OBD_BUS): Setting target header to ATSH7E0
+[0000111402] (OBD_BUS): Sending hex query: 0142
+[0000111411] (OBD_BUS): Raw payload answer received: OK
+[0000111412] (OBD_BUS): Setting target header to ATSH7E0
+[0000111472] (OBD_BUS): Sending hex query: 010C
+[0000111482] (OBD_BUS): Raw payload answer received: OK
+[0000111483] (OBD_BUS): Setting target header to ATSH7E0
+[0000111543] (OBD_BUS): Sending hex query: 010D
+[0000111551] (OBD_BUS): Raw payload answer received: OK
+[0000111552] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000111620] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000111620] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000112921] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000112921] (OBD_BUS): Setting target header to ATSH418F02
+[0000112981] (OBD_BUS): Sending hex query: 2211B2
+[0000113119] (OBD_BUS): Raw payload answer received: NODATA
+[0000113119] (OBD_BUS): Setting target header to ATSH7E0
+[0000113180] (OBD_BUS): Sending hex query: 010B
+[0000113215] (OBD_BUS): Raw payload answer received: OK
+[0000113215] (OBD_BUS): Setting target header to ATSH7E0
+[0000113276] (OBD_BUS): Sending hex query: 2209D0
+[0000113285] (OBD_BUS): Raw payload answer received: OK
+[0000113285] (OBD_BUS): Setting target header to ATSH7E0
+[0000113346] (OBD_BUS): Sending hex query: 221139
+[0000113355] (OBD_BUS): Raw payload answer received: OK
+[0000113355] (OBD_BUS): Setting target header to ATSH7E0
+[0000113416] (OBD_BUS): Sending hex query: 221E1C
+[0000113425] (OBD_BUS): Raw payload answer received: OK
+[0000113425] (OBD_BUS): Setting target header to ATSH7E0
+[0000113486] (OBD_BUS): Sending hex query: 0142
+[0000113495] (OBD_BUS): Raw payload answer received: OK
+[0000113495] (OBD_BUS): Setting target header to ATSH7E0
+[0000113556] (OBD_BUS): Sending hex query: 010C
+[0000113565] (OBD_BUS): Raw payload answer received: OK
+[0000113565] (OBD_BUS): Setting target header to ATSH7E0
+[0000113626] (OBD_BUS): Sending hex query: 010D
+[0000113635] (OBD_BUS): Raw payload answer received: OK
+[0000113635] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000113705] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000113705] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000114922] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000114922] (OBD_BUS): Setting target header to ATSH418F02
+[0000114982] (OBD_BUS): Sending hex query: 2211B2
+[0000114990] (OBD_BUS): Raw payload answer received: OK
+[0000114990] (OBD_BUS): Setting target header to ATSH7E0
+[0000115050] (OBD_BUS): Sending hex query: 010B
+[0000115136] (OBD_BUS): Raw payload answer received: NODATA
+[0000115137] (OBD_BUS): Setting target header to ATSH7E0
+[0000115197] (OBD_BUS): Sending hex query: 2209D0
+[0000115206] (OBD_BUS): Raw payload answer received: OK
+[0000115207] (OBD_BUS): Setting target header to ATSH7E0
+[0000115267] (OBD_BUS): Sending hex query: 221139
+[0000115276] (OBD_BUS): Raw payload answer received: OK
+[0000115277] (OBD_BUS): Setting target header to ATSH7E0
+[0000115337] (OBD_BUS): Sending hex query: 221E1C
+[0000115348] (OBD_BUS): Raw payload answer received: OK
+[0000115348] (OBD_BUS): Setting target header to ATSH7E0
+[0000115408] (OBD_BUS): Sending hex query: 0142
+[0000115416] (OBD_BUS): Raw payload answer received: OK
+[0000115417] (OBD_BUS): Setting target header to ATSH7E0
+[0000115477] (OBD_BUS): Sending hex query: 010C
+[0000115486] (OBD_BUS): Raw payload answer received: OK
+[0000115487] (OBD_BUS): Setting target header to ATSH7E0
+[0000115547] (OBD_BUS): Sending hex query: 010D
+[0000115556] (OBD_BUS): Raw payload answer received: OK
+[0000115557] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000115625] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000115625] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000116923] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000116923] (OBD_BUS): Setting target header to ATSH418F02
+[0000116983] (OBD_BUS): Sending hex query: 2211B2
+[0000116992] (OBD_BUS): Raw payload answer received: OK
+[0000116992] (OBD_BUS): Setting target header to ATSH7E0
+[0000117053] (OBD_BUS): Sending hex query: 010B
+[0000117138] (OBD_BUS): Raw payload answer received: NODATA
+[0000117138] (OBD_BUS): Setting target header to ATSH7E0
+[0000117198] (OBD_BUS): Sending hex query: 2209D0
+[0000117233] (OBD_BUS): Raw payload answer received: OK
+[0000117233] (OBD_BUS): Setting target header to ATSH7E0
+[0000117293] (OBD_BUS): Sending hex query: 221139
+[0000117301] (OBD_BUS): Raw payload answer received: OK
+[0000117302] (OBD_BUS): Setting target header to ATSH7E0
+[0000117362] (OBD_BUS): Sending hex query: 221E1C
+[0000117372] (OBD_BUS): Raw payload answer received: OK
+[0000117373] (OBD_BUS): Setting target header to ATSH7E0
+[0000117433] (OBD_BUS): Sending hex query: 0142
+[0000117441] (OBD_BUS): Raw payload answer received: OK
+[0000117442] (OBD_BUS): Setting target header to ATSH7E0
+[0000117502] (OBD_BUS): Sending hex query: 010C
+[0000117511] (OBD_BUS): Raw payload answer received: OK
+[0000117512] (OBD_BUS): Setting target header to ATSH7E0
+[0000117572] (OBD_BUS): Sending hex query: 010D
+[0000117581] (OBD_BUS): Raw payload answer received: OK
+[0000117582] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000117650] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000117650] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000118924] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000118924] (OBD_BUS): Setting target header to ATSH418F02
+[0000118984] (OBD_BUS): Sending hex query: 2211B2
+[0000118998] (OBD_BUS): Raw payload answer received: OK
+[0000118998] (OBD_BUS): Setting target header to ATSH7E0
+[0000119058] (OBD_BUS): Sending hex query: 010B
+[0000119068] (OBD_BUS): Raw payload answer received: OK
+[0000119068] (OBD_BUS): Setting target header to ATSH7E0
+[0000119128] (OBD_BUS): Sending hex query: 2209D0
+[0000119136] (OBD_BUS): Raw payload answer received: OK
+[0000119137] (OBD_BUS): Setting target header to ATSH7E0
+[0000119197] (OBD_BUS): Sending hex query: 221139
+[0000119206] (OBD_BUS): Raw payload answer received: OK
+[0000119207] (OBD_BUS): Setting target header to ATSH7E0
+[0000119267] (OBD_BUS): Sending hex query: 221E1C
+[0000119276] (OBD_BUS): Raw payload answer received: OK
+[0000119277] (OBD_BUS): Setting target header to ATSH7E0
+[0000119337] (OBD_BUS): Sending hex query: 0142
+[0000119346] (OBD_BUS): Raw payload answer received: OK
+[0000119347] (OBD_BUS): Setting target header to ATSH7E0
+[0000119407] (OBD_BUS): Sending hex query: 010C
+[0000119416] (OBD_BUS): Raw payload answer received: OK
+[0000119417] (OBD_BUS): Setting target header to ATSH7E0
+[0000119477] (OBD_BUS): Sending hex query: 010D
+[0000119487] (OBD_BUS): Raw payload answer received: OK
+[0000119488] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000119557] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000119557] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000120925] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000120925] (OBD_BUS): Setting target header to ATSH418F02
+[0000120985] (OBD_BUS): Sending hex query: 2211B2
+[0000120994] (OBD_BUS): Raw payload answer received: OK
+[0000120994] (OBD_BUS): Setting target header to ATSH7E0
+[0000121055] (OBD_BUS): Sending hex query: 010B
+[0000121064] (OBD_BUS): Raw payload answer received: OK
+[0000121064] (OBD_BUS): Setting target header to ATSH7E0
+[0000121125] (OBD_BUS): Sending hex query: 2209D0
+[0000121134] (OBD_BUS): Raw payload answer received: OK
+[0000121134] (OBD_BUS): Setting target header to ATSH7E0
+[0000121195] (OBD_BUS): Sending hex query: 221139
+[0000121204] (OBD_BUS): Raw payload answer received: OK
+[0000121204] (OBD_BUS): Setting target header to ATSH7E0
+[0000121265] (OBD_BUS): Sending hex query: 221E1C
+[0000121274] (OBD_BUS): Raw payload answer received: OK
+[0000121274] (OBD_BUS): Setting target header to ATSH7E0
+[0000121335] (OBD_BUS): Sending hex query: 0142
+[0000121344] (OBD_BUS): Raw payload answer received: OK
+[0000121344] (OBD_BUS): Setting target header to ATSH7E0
+[0000121405] (OBD_BUS): Sending hex query: 010C
+[0000121414] (OBD_BUS): Raw payload answer received: OK
+[0000121414] (OBD_BUS): Setting target header to ATSH7E0
+[0000121475] (OBD_BUS): Sending hex query: 010D
+[0000121484] (OBD_BUS): Raw payload answer received: OK
+[0000121484] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000121554] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000121554] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000122926] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000122926] (OBD_BUS): Setting target header to ATSH418F02
+[0000122986] (OBD_BUS): Sending hex query: 2211B2
+[0000122996] (OBD_BUS): Raw payload answer received: OK
+[0000122997] (OBD_BUS): Setting target header to ATSH7E0
+[0000123057] (OBD_BUS): Sending hex query: 010B
+[0000123066] (OBD_BUS): Raw payload answer received: OK
+[0000123067] (OBD_BUS): Setting target header to ATSH7E0
+[0000123127] (OBD_BUS): Sending hex query: 2209D0
+[0000123138] (OBD_BUS): Raw payload answer received: OK
+[0000123138] (OBD_BUS): Setting target header to ATSH7E0
+[0000123198] (OBD_BUS): Sending hex query: 221139
+[0000123206] (OBD_BUS): Raw payload answer received: OK
+[0000123207] (OBD_BUS): Setting target header to ATSH7E0
+[0000123267] (OBD_BUS): Sending hex query: 221E1C
+[0000123276] (OBD_BUS): Raw payload answer received: OK
+[0000123277] (OBD_BUS): Setting target header to ATSH7E0
+[0000123337] (OBD_BUS): Sending hex query: 0142
+[0000123346] (OBD_BUS): Raw payload answer received: OK
+[0000123347] (OBD_BUS): Setting target header to ATSH7E0
+[0000123407] (OBD_BUS): Sending hex query: 010C
+[0000123423] (OBD_BUS): Raw payload answer received: OK
+[0000123423] (OBD_BUS): Setting target header to ATSH7E0
+[0000123483] (OBD_BUS): Sending hex query: 010D
+[0000123491] (OBD_BUS): Raw payload answer received: OK
+[0000123492] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000123560] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000123561] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000124927] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000124927] (OBD_BUS): Setting target header to ATSH418F02
+[0000124987] (OBD_BUS): Sending hex query: 2211B2
+[0000124996] (OBD_BUS): Raw payload answer received: OK
+[0000124997] (OBD_BUS): Setting target header to ATSH7E0
+[0000125057] (OBD_BUS): Sending hex query: 010B
+[0000125066] (OBD_BUS): Raw payload answer received: OK
+[0000125067] (OBD_BUS): Setting target header to ATSH7E0
+[0000125127] (OBD_BUS): Sending hex query: 2209D0
+[0000125136] (OBD_BUS): Raw payload answer received: OK
+[0000125137] (OBD_BUS): Setting target header to ATSH7E0
+[0000125197] (OBD_BUS): Sending hex query: 221139
+[0000125206] (OBD_BUS): Raw payload answer received: OK
+[0000125207] (OBD_BUS): Setting target header to ATSH7E0
+[0000125267] (OBD_BUS): Sending hex query: 221E1C
+[0000125276] (OBD_BUS): Raw payload answer received: OK
+[0000125277] (OBD_BUS): Setting target header to ATSH7E0
+[0000125337] (OBD_BUS): Sending hex query: 0142
+[0000125346] (OBD_BUS): Raw payload answer received: OK
+[0000125347] (OBD_BUS): Setting target header to ATSH7E0
+[0000125407] (OBD_BUS): Sending hex query: 010C
+[0000125416] (OBD_BUS): Raw payload answer received: OK
+[0000125417] (OBD_BUS): Setting target header to ATSH7E0
+[0000125477] (OBD_BUS): Sending hex query: 010D
+[0000125495] (OBD_BUS): Raw payload answer received: OK
+[0000125495] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000125640] (OBD_WARN): No valid reply to 03. Raw: 410D00
+[0000125641] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000126928] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000126928] (OBD_BUS): Setting target header to ATSH418F02
+[0000126988] (OBD_BUS): Sending hex query: 2211B2
+[0000126995] (OBD_BUS): Raw payload answer received: OK
+[0000126995] (OBD_BUS): Setting target header to ATSH7E0
+[0000127055] (OBD_BUS): Sending hex query: 010B
+[0000127140] (OBD_BUS): Raw payload answer received: NODATA
+[0000127140] (OBD_BUS): Setting target header to ATSH7E0
+[0000127201] (OBD_BUS): Sending hex query: 2209D0
+[0000127211] (OBD_BUS): Raw payload answer received: OK
+[0000127212] (OBD_BUS): Setting target header to ATSH7E0
+[0000127272] (OBD_BUS): Sending hex query: 221139
+[0000127288] (OBD_BUS): Raw payload answer received: OK
+[0000127288] (OBD_BUS): Setting target header to ATSH7E0
+[0000127348] (OBD_BUS): Sending hex query: 221E1C
+[0000127360] (OBD_BUS): Raw payload answer received: OK
+[0000127360] (OBD_BUS): Setting target header to ATSH7E0
+[0000127421] (OBD_BUS): Sending hex query: 0142
+[0000127430] (OBD_BUS): Raw payload answer received: OK
+[0000127430] (OBD_BUS): Setting target header to ATSH7E0
+[0000127491] (OBD_BUS): Sending hex query: 010C
+[0000127500] (OBD_BUS): Raw payload answer received: OK
+[0000127500] (OBD_BUS): Setting target header to ATSH7E0
+[0000127561] (OBD_BUS): Sending hex query: 010D
+[0000127570] (OBD_BUS): Raw payload answer received: OK
+[0000127570] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000127640] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000127640] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000128929] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000128929] (OBD_BUS): Setting target header to ATSH418F02
+[0000128989] (OBD_BUS): Sending hex query: 2211B2
+[0000128999] (OBD_BUS): Raw payload answer received: OK
+[0000128999] (OBD_BUS): Setting target header to ATSH7E0
+[0000129060] (OBD_BUS): Sending hex query: 010B
+[0000129069] (OBD_BUS): Raw payload answer received: OK
+[0000129069] (OBD_BUS): Setting target header to ATSH7E0
+[0000129130] (OBD_BUS): Sending hex query: 2209D0
+[0000129139] (OBD_BUS): Raw payload answer received: OK
+[0000129139] (OBD_BUS): Setting target header to ATSH7E0
+[0000129199] (OBD_BUS): Sending hex query: 221139
+[0000129208] (OBD_BUS): Raw payload answer received: OK
+[0000129208] (OBD_BUS): Setting target header to ATSH7E0
+[0000129268] (OBD_BUS): Sending hex query: 221E1C
+[0000129276] (OBD_BUS): Raw payload answer received: OK
+[0000129277] (OBD_BUS): Setting target header to ATSH7E0
+[0000129337] (OBD_BUS): Sending hex query: 0142
+[0000129346] (OBD_BUS): Raw payload answer received: OK
+[0000129347] (OBD_BUS): Setting target header to ATSH7E0
+[0000129407] (OBD_BUS): Sending hex query: 010C
+[0000129416] (OBD_BUS): Raw payload answer received: OK
+[0000129417] (OBD_BUS): Setting target header to ATSH7E0
+[0000129477] (OBD_BUS): Sending hex query: 010D
+[0000129486] (OBD_BUS): Raw payload answer received: OK
+[0000129487] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000129555] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000129555] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000130930] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000130930] (OBD_BUS): Setting target header to ATSH418F02
+[0000130990] (OBD_BUS): Sending hex query: 2211B2
+[0000130994] (OBD_BUS): Raw payload answer received: OK
+[0000130994] (OBD_BUS): Setting target header to ATSH7E0
+[0000131055] (OBD_BUS): Sending hex query: 010B
+[0000131140] (OBD_BUS): Raw payload answer received: NODATA
+[0000131140] (OBD_BUS): Setting target header to ATSH7E0
+[0000131201] (OBD_BUS): Sending hex query: 2209D0
+[0000131211] (OBD_BUS): Raw payload answer received: OK
+[0000131212] (OBD_BUS): Setting target header to ATSH7E0
+[0000131272] (OBD_BUS): Sending hex query: 221139
+[0000131282] (OBD_BUS): Raw payload answer received: OK
+[0000131283] (OBD_BUS): Setting target header to ATSH7E0
+[0000131343] (OBD_BUS): Sending hex query: 221E1C
+[0000131351] (OBD_BUS): Raw payload answer received: OK
+[0000131352] (OBD_BUS): Setting target header to ATSH7E0
+[0000131412] (OBD_BUS): Sending hex query: 0142
+[0000131421] (OBD_BUS): Raw payload answer received: OK
+[0000131422] (OBD_BUS): Setting target header to ATSH7E0
+[0000131482] (OBD_BUS): Sending hex query: 010C
+[0000131491] (OBD_BUS): Raw payload answer received: OK
+[0000131492] (OBD_BUS): Setting target header to ATSH7E0
+[0000131552] (OBD_BUS): Sending hex query: 010D
+[0000131561] (OBD_BUS): Raw payload answer received: OK
+[0000131562] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000131630] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000131630] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000132931] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000132931] (OBD_BUS): Setting target header to ATSH418F02
+[0000132991] (OBD_BUS): Sending hex query: 2211B2
+[0000132999] (OBD_BUS): Raw payload answer received: OK
+[0000132999] (OBD_BUS): Setting target header to ATSH7E0
+[0000133059] (OBD_BUS): Sending hex query: 010B
+[0000133144] (OBD_BUS): Raw payload answer received: NODATA
+[0000133144] (OBD_BUS): Setting target header to ATSH7E0
+[0000133205] (OBD_BUS): Sending hex query: 2209D0
+[0000133214] (OBD_BUS): Raw payload answer received: OK
+[0000133214] (OBD_BUS): Setting target header to ATSH7E0
+[0000133275] (OBD_BUS): Sending hex query: 221139
+[0000133284] (OBD_BUS): Raw payload answer received: OK
+[0000133284] (OBD_BUS): Setting target header to ATSH7E0
+[0000133345] (OBD_BUS): Sending hex query: 221E1C
+[0000133354] (OBD_BUS): Raw payload answer received: OK
+[0000133354] (OBD_BUS): Setting target header to ATSH7E0
+[0000133414] (OBD_BUS): Sending hex query: 0142
+[0000133423] (OBD_BUS): Raw payload answer received: OK
+[0000133423] (OBD_BUS): Setting target header to ATSH7E0
+[0000133483] (OBD_BUS): Sending hex query: 010C
+[0000133491] (OBD_BUS): Raw payload answer received: OK
+[0000133492] (OBD_BUS): Setting target header to ATSH7E0
+[0000133552] (OBD_BUS): Sending hex query: 010D
+[0000133561] (OBD_BUS): Raw payload answer received: OK
+[0000133562] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000133630] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000133630] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000134932] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000134932] (OBD_BUS): Setting target header to ATSH418F02
+[0000134992] (OBD_BUS): Sending hex query: 2211B2
+[0000135000] (OBD_BUS): Raw payload answer received: OK
+[0000135000] (OBD_BUS): Setting target header to ATSH7E0
+[0000135060] (OBD_BUS): Sending hex query: 010B
+[0000135145] (OBD_BUS): Raw payload answer received: NODATA
+[0000135145] (OBD_BUS): Setting target header to ATSH7E0
+[0000135206] (OBD_BUS): Sending hex query: 2209D0
+[0000135215] (OBD_BUS): Raw payload answer received: OK
+[0000135215] (OBD_BUS): Setting target header to ATSH7E0
+[0000135276] (OBD_BUS): Sending hex query: 221139
+[0000135285] (OBD_BUS): Raw payload answer received: OK
+[0000135285] (OBD_BUS): Setting target header to ATSH7E0
+[0000135346] (OBD_BUS): Sending hex query: 221E1C
+[0000135356] (OBD_BUS): Raw payload answer received: OK
+[0000135357] (OBD_BUS): Setting target header to ATSH7E0
+[0000135417] (OBD_BUS): Sending hex query: 0142
+[0000135426] (OBD_BUS): Raw payload answer received: OK
+[0000135427] (OBD_BUS): Setting target header to ATSH7E0
+[0000135487] (OBD_BUS): Sending hex query: 010C
+[0000135496] (OBD_BUS): Raw payload answer received: OK
+[0000135497] (OBD_BUS): Setting target header to ATSH7E0
+[0000135557] (OBD_BUS): Sending hex query: 010D
+[0000135566] (OBD_BUS): Raw payload answer received: OK
+[0000135567] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000135635] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000135635] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000136933] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000136933] (OBD_BUS): Setting target header to ATSH418F02
+[0000136993] (OBD_BUS): Sending hex query: 2211B2
+[0000137000] (OBD_BUS): Raw payload answer received: OK
+[0000137000] (OBD_BUS): Setting target header to ATSH7E0
+[0000137060] (OBD_BUS): Sending hex query: 010B
+[0000137155] (OBD_BUS): Raw payload answer received: NODATA
+[0000137155] (OBD_BUS): Setting target header to ATSH7E0
+[0000137215] (OBD_BUS): Sending hex query: 2209D0
+[0000137376] (OBD_BUS): Raw payload answer received: 6209D02F80
+[0000137377] (OBD_BUS): Setting target header to ATSH7E0
+[0000137437] (OBD_BUS): Sending hex query: 221139
+[0000137446] (OBD_BUS): Raw payload answer received: OK
+[0000137447] (OBD_BUS): Setting target header to ATSH7E0
+[0000137507] (OBD_BUS): Sending hex query: 221E1C
+[0000137518] (OBD_BUS): Raw payload answer received: OK
+[0000137518] (OBD_BUS): Setting target header to ATSH7E0
+[0000137578] (OBD_BUS): Sending hex query: 0142
+[0000137586] (OBD_BUS): Raw payload answer received: OK
+[0000137587] (OBD_BUS): Setting target header to ATSH7E0
+[0000137647] (OBD_BUS): Sending hex query: 010C
+[0000137659] (OBD_BUS): Raw payload answer received: OK
+[0000137659] (OBD_BUS): Setting target header to ATSH7E0
+[0000137719] (OBD_BUS): Sending hex query: 010D
+[0000137728] (OBD_BUS): Raw payload answer received: OK
+[0000137728] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000137797] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000137797] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000138934] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000138934] (OBD_BUS): Setting target header to ATSH418F02
+[0000138994] (OBD_BUS): Sending hex query: 2211B2
+[0000139128] (OBD_BUS): Raw payload answer received: NODATA
+[0000139128] (OBD_BUS): Setting target header to ATSH7E0
+[0000139188] (OBD_BUS): Sending hex query: 010B
+[0000139298] (OBD_BUS): Raw payload answer received: 410B65
+[0000139298] (OBD_BUS): Setting target header to ATSH7E0
+[0000139358] (OBD_BUS): Sending hex query: 2209D0
+[0000139366] (OBD_BUS): Raw payload answer received: OK
+[0000139367] (OBD_BUS): Setting target header to ATSH7E0
+[0000139427] (OBD_BUS): Sending hex query: 221139
+[0000139436] (OBD_BUS): Raw payload answer received: OK
+[0000139437] (OBD_BUS): Setting target header to ATSH7E0
+[0000139497] (OBD_BUS): Sending hex query: 221E1C
+[0000139508] (OBD_BUS): Raw payload answer received: OK
+[0000139508] (OBD_BUS): Setting target header to ATSH7E0
+[0000139568] (OBD_BUS): Sending hex query: 0142
+[0000139576] (OBD_BUS): Raw payload answer received: OK
+[0000139577] (OBD_BUS): Setting target header to ATSH7E0
+[0000139637] (OBD_BUS): Sending hex query: 010C
+[0000139646] (OBD_BUS): Raw payload answer received: OK
+[0000139647] (OBD_BUS): Setting target header to ATSH7E0
+[0000139707] (OBD_BUS): Sending hex query: 010D
+[0000139730] (OBD_BUS): Raw payload answer received: OK
+[0000139731] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000139799] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000139799] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000140935] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000140935] (OBD_BUS): Setting target header to ATSH418F02
+[0000140995] (OBD_BUS): Sending hex query: 2211B2
+[0000141155] (OBD_BUS): Raw payload answer received: NODATA
+[0000141155] (OBD_BUS): Setting target header to ATSH7E0
+[0000141216] (OBD_BUS): Sending hex query: 010B
+[0000141225] (OBD_BUS): Raw payload answer received: OK
+[0000141225] (OBD_BUS): Setting target header to ATSH7E0
+[0000141286] (OBD_BUS): Sending hex query: 2209D0
+[0000141295] (OBD_BUS): Raw payload answer received: OK
+[0000141295] (OBD_BUS): Setting target header to ATSH7E0
+[0000141356] (OBD_BUS): Sending hex query: 221139
+[0000141366] (OBD_BUS): Raw payload answer received: OK
+[0000141367] (OBD_BUS): Setting target header to ATSH7E0
+[0000141427] (OBD_BUS): Sending hex query: 221E1C
+[0000141436] (OBD_BUS): Raw payload answer received: OK
+[0000141437] (OBD_BUS): Setting target header to ATSH7E0
+[0000141497] (OBD_BUS): Sending hex query: 0142
+[0000141513] (OBD_BUS): Raw payload answer received: OK
+[0000141513] (OBD_BUS): Setting target header to ATSH7E0
+[0000141573] (OBD_BUS): Sending hex query: 010C
+[0000141585] (OBD_BUS): Raw payload answer received: OK
+[0000141585] (OBD_BUS): Setting target header to ATSH7E0
+[0000141646] (OBD_BUS): Sending hex query: 010D
+[0000141655] (OBD_BUS): Raw payload answer received: OK
+[0000141655] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000141725] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000141726] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000142936] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000142936] (OBD_BUS): Setting target header to ATSH418F02
+[0000142996] (OBD_BUS): Sending hex query: 2211B2
+[0000143006] (OBD_BUS): Raw payload answer received: OK
+[0000143006] (OBD_BUS): Setting target header to ATSH7E0
+[0000143067] (OBD_BUS): Sending hex query: 010B
+[0000143076] (OBD_BUS): Raw payload answer received: OK
+[0000143077] (OBD_BUS): Setting target header to ATSH7E0
+[0000143137] (OBD_BUS): Sending hex query: 2209D0
+[0000143146] (OBD_BUS): Raw payload answer received: OK
+[0000143147] (OBD_BUS): Setting target header to ATSH7E0
+[0000143207] (OBD_BUS): Sending hex query: 221139
+[0000143216] (OBD_BUS): Raw payload answer received: OK
+[0000143217] (OBD_BUS): Setting target header to ATSH7E0
+[0000143277] (OBD_BUS): Sending hex query: 221E1C
+[0000143286] (OBD_BUS): Raw payload answer received: OK
+[0000143287] (OBD_BUS): Setting target header to ATSH7E0
+[0000143347] (OBD_BUS): Sending hex query: 0142
+[0000143356] (OBD_BUS): Raw payload answer received: OK
+[0000143357] (OBD_BUS): Setting target header to ATSH7E0
+[0000143417] (OBD_BUS): Sending hex query: 010C
+[0000143426] (OBD_BUS): Raw payload answer received: OK
+[0000143427] (OBD_BUS): Setting target header to ATSH7E0
+[0000143487] (OBD_BUS): Sending hex query: 010D
+[0000143496] (OBD_BUS): Raw payload answer received: OK
+[0000143497] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000143565] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000143565] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000144937] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000144937] (OBD_BUS): Setting target header to ATSH418F02
+[0000144997] (OBD_BUS): Sending hex query: 2211B2
+[0000145005] (OBD_BUS): Raw payload answer received: OK
+[0000145005] (OBD_BUS): Setting target header to ATSH7E0
+[0000145065] (OBD_BUS): Sending hex query: 010B
+[0000145150] (OBD_BUS): Raw payload answer received: NODATA
+[0000145150] (OBD_BUS): Setting target header to ATSH7E0
+[0000145211] (OBD_BUS): Sending hex query: 2209D0
+[0000145221] (OBD_BUS): Raw payload answer received: OK
+[0000145222] (OBD_BUS): Setting target header to ATSH7E0
+[0000145282] (OBD_BUS): Sending hex query: 221139
+[0000145291] (OBD_BUS): Raw payload answer received: OK
+[0000145292] (OBD_BUS): Setting target header to ATSH7E0
+[0000145352] (OBD_BUS): Sending hex query: 221E1C
+[0000145361] (OBD_BUS): Raw payload answer received: OK
+[0000145362] (OBD_BUS): Setting target header to ATSH7E0
+[0000145422] (OBD_BUS): Sending hex query: 0142
+[0000145435] (OBD_BUS): Raw payload answer received: OK
+[0000145435] (OBD_BUS): Setting target header to ATSH7E0
+[0000145496] (OBD_BUS): Sending hex query: 010C
+[0000145505] (OBD_BUS): Raw payload answer received: OK
+[0000145505] (OBD_BUS): Setting target header to ATSH7E0
+[0000145566] (OBD_BUS): Sending hex query: 010D
+[0000145575] (OBD_BUS): Raw payload answer received: OK
+[0000145575] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000145645] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000145646] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000146938] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000146938] (OBD_BUS): Setting target header to ATSH418F02
+[0000146998] (OBD_BUS): Sending hex query: 2211B2
+[0000147005] (OBD_BUS): Raw payload answer received: OK
+[0000147005] (OBD_BUS): Setting target header to ATSH7E0
+[0000147065] (OBD_BUS): Sending hex query: 010B
+[0000147150] (OBD_BUS): Raw payload answer received: NODATA
+[0000147150] (OBD_BUS): Setting target header to ATSH7E0
+[0000147211] (OBD_BUS): Sending hex query: 2209D0
+[0000147221] (OBD_BUS): Raw payload answer received: OK
+[0000147222] (OBD_BUS): Setting target header to ATSH7E0
+[0000147282] (OBD_BUS): Sending hex query: 221139
+[0000147291] (OBD_BUS): Raw payload answer received: OK
+[0000147292] (OBD_BUS): Setting target header to ATSH7E0
+[0000147352] (OBD_BUS): Sending hex query: 221E1C
+[0000147361] (OBD_BUS): Raw payload answer received: OK
+[0000147362] (OBD_BUS): Setting target header to ATSH7E0
+[0000147422] (OBD_BUS): Sending hex query: 0142
+[0000147431] (OBD_BUS): Raw payload answer received: OK
+[0000147432] (OBD_BUS): Setting target header to ATSH7E0
+[0000147492] (OBD_BUS): Sending hex query: 010C
+[0000147512] (OBD_BUS): Raw payload answer received: OK
+[0000147512] (OBD_BUS): Setting target header to ATSH7E0
+[0000147572] (OBD_BUS): Sending hex query: 010D
+[0000147582] (OBD_BUS): Raw payload answer received: OK
+[0000147582] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000147652] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000147652] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000148939] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000148939] (OBD_BUS): Setting target header to ATSH418F02
+[0000148999] (OBD_BUS): Sending hex query: 2211B2
+[0000149008] (OBD_BUS): Raw payload answer received: OK
+[0000149008] (OBD_BUS): Setting target header to ATSH7E0
+[0000149068] (OBD_BUS): Sending hex query: 010B
+[0000149076] (OBD_BUS): Raw payload answer received: OK
+[0000149077] (OBD_BUS): Setting target header to ATSH7E0
+[0000149137] (OBD_BUS): Sending hex query: 2209D0
+[0000149146] (OBD_BUS): Raw payload answer received: OK
+[0000149147] (OBD_BUS): Setting target header to ATSH7E0
+[0000149207] (OBD_BUS): Sending hex query: 221139
+[0000149216] (OBD_BUS): Raw payload answer received: OK
+[0000149217] (OBD_BUS): Setting target header to ATSH7E0
+[0000149277] (OBD_BUS): Sending hex query: 221E1C
+[0000149288] (OBD_BUS): Raw payload answer received: OK
+[0000149288] (OBD_BUS): Setting target header to ATSH7E0
+[0000149348] (OBD_BUS): Sending hex query: 0142
+[0000149356] (OBD_BUS): Raw payload answer received: OK
+[0000149357] (OBD_BUS): Setting target header to ATSH7E0
+[0000149417] (OBD_BUS): Sending hex query: 010C
+[0000149426] (OBD_BUS): Raw payload answer received: OK
+[0000149427] (OBD_BUS): Setting target header to ATSH7E0
+[0000149487] (OBD_BUS): Sending hex query: 010D
+[0000149496] (OBD_BUS): Raw payload answer received: OK
+[0000149497] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000149565] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000149565] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000150940] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000150940] (OBD_BUS): Setting target header to ATSH418F02
+[0000151000] (OBD_BUS): Sending hex query: 2211B2
+[0000151007] (OBD_BUS): Raw payload answer received: OK
+[0000151007] (OBD_BUS): Setting target header to ATSH7E0
+[0000151068] (OBD_BUS): Sending hex query: 010B
+[0000151154] (OBD_BUS): Raw payload answer received: NODATA
+[0000151154] (OBD_BUS): Setting target header to ATSH7E0
+[0000151214] (OBD_BUS): Sending hex query: 2209D0
+[0000151223] (OBD_BUS): Raw payload answer received: OK
+[0000151223] (OBD_BUS): Setting target header to ATSH7E0
+[0000151283] (OBD_BUS): Sending hex query: 221139
+[0000151291] (OBD_BUS): Raw payload answer received: OK
+[0000151292] (OBD_BUS): Setting target header to ATSH7E0
+[0000151352] (OBD_BUS): Sending hex query: 221E1C
+[0000151361] (OBD_BUS): Raw payload answer received: OK
+[0000151362] (OBD_BUS): Setting target header to ATSH7E0
+[0000151422] (OBD_BUS): Sending hex query: 0142
+[0000151431] (OBD_BUS): Raw payload answer received: OK
+[0000151432] (OBD_BUS): Setting target header to ATSH7E0
+[0000151492] (OBD_BUS): Sending hex query: 010C
+[0000151501] (OBD_BUS): Raw payload answer received: OK
+[0000151502] (OBD_BUS): Setting target header to ATSH7E0
+[0000151562] (OBD_BUS): Sending hex query: 010D
+[0000151571] (OBD_BUS): Raw payload answer received: OK
+[0000151572] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000151640] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000151640] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000152941] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000152941] (OBD_BUS): Setting target header to ATSH418F02
+[0000153001] (OBD_BUS): Sending hex query: 2211B2
+[0000153010] (OBD_BUS): Raw payload answer received: OK
+[0000153010] (OBD_BUS): Setting target header to ATSH7E0
+[0000153070] (OBD_BUS): Sending hex query: 010B
+[0000153163] (OBD_BUS): Raw payload answer received: NODATA
+[0000153163] (OBD_BUS): Setting target header to ATSH7E0
+[0000153223] (OBD_BUS): Sending hex query: 2209D0
+[0000153231] (OBD_BUS): Raw payload answer received: OK
+[0000153232] (OBD_BUS): Setting target header to ATSH7E0
+[0000153292] (OBD_BUS): Sending hex query: 221139
+[0000153301] (OBD_BUS): Raw payload answer received: OK
+[0000153302] (OBD_BUS): Setting target header to ATSH7E0
+[0000153362] (OBD_BUS): Sending hex query: 221E1C
+[0000153371] (OBD_BUS): Raw payload answer received: OK
+[0000153372] (OBD_BUS): Setting target header to ATSH7E0
+[0000153432] (OBD_BUS): Sending hex query: 0142
+[0000153441] (OBD_BUS): Raw payload answer received: OK
+[0000153442] (OBD_BUS): Setting target header to ATSH7E0
+[0000153502] (OBD_BUS): Sending hex query: 010C
+[0000153511] (OBD_BUS): Raw payload answer received: OK
+[0000153512] (OBD_BUS): Setting target header to ATSH7E0
+[0000153572] (OBD_BUS): Sending hex query: 010D
+[0000153581] (OBD_BUS): Raw payload answer received: OK
+[0000153582] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000153650] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000153650] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000154942] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000154942] (OBD_BUS): Setting target header to ATSH418F02
+[0000155002] (OBD_BUS): Sending hex query: 2211B2
+[0000155011] (OBD_BUS): Raw payload answer received: OK
+[0000155012] (OBD_BUS): Setting target header to ATSH7E0
+[0000155072] (OBD_BUS): Sending hex query: 010B
+[0000155081] (OBD_BUS): Raw payload answer received: OK
+[0000155082] (OBD_BUS): Setting target header to ATSH7E0
+[0000155142] (OBD_BUS): Sending hex query: 2209D0
+[0000155151] (OBD_BUS): Raw payload answer received: OK
+[0000155152] (OBD_BUS): Setting target header to ATSH7E0
+[0000155212] (OBD_BUS): Sending hex query: 221139
+[0000155222] (OBD_BUS): Raw payload answer received: OK
+[0000155222] (OBD_BUS): Setting target header to ATSH7E0
+[0000155282] (OBD_BUS): Sending hex query: 221E1C
+[0000155296] (OBD_BUS): Raw payload answer received: OK
+[0000155297] (OBD_BUS): Setting target header to ATSH7E0
+[0000155357] (OBD_BUS): Sending hex query: 0142
+[0000155366] (OBD_BUS): Raw payload answer received: OK
+[0000155367] (OBD_BUS): Setting target header to ATSH7E0
+[0000155427] (OBD_BUS): Sending hex query: 010C
+[0000155436] (OBD_BUS): Raw payload answer received: OK
+[0000155437] (OBD_BUS): Setting target header to ATSH7E0
+[0000155497] (OBD_BUS): Sending hex query: 010D
+[0000155506] (OBD_BUS): Raw payload answer received: OK
+[0000155507] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000155577] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000155577] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000156943] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000156943] (OBD_BUS): Setting target header to ATSH418F02
+[0000157003] (OBD_BUS): Sending hex query: 2211B2
+[0000157011] (OBD_BUS): Raw payload answer received: OK
+[0000157012] (OBD_BUS): Setting target header to ATSH7E0
+[0000157072] (OBD_BUS): Sending hex query: 010B
+[0000157081] (OBD_BUS): Raw payload answer received: OK
+[0000157082] (OBD_BUS): Setting target header to ATSH7E0
+[0000157142] (OBD_BUS): Sending hex query: 2209D0
+[0000157151] (OBD_BUS): Raw payload answer received: OK
+[0000157152] (OBD_BUS): Setting target header to ATSH7E0
+[0000157212] (OBD_BUS): Sending hex query: 221139
+[0000157221] (OBD_BUS): Raw payload answer received: OK
+[0000157222] (OBD_BUS): Setting target header to ATSH7E0
+[0000157282] (OBD_BUS): Sending hex query: 221E1C
+[0000157291] (OBD_BUS): Raw payload answer received: OK
+[0000157292] (OBD_BUS): Setting target header to ATSH7E0
+[0000157352] (OBD_BUS): Sending hex query: 0142
+[0000157361] (OBD_BUS): Raw payload answer received: OK
+[0000157362] (OBD_BUS): Setting target header to ATSH7E0
+[0000157422] (OBD_BUS): Sending hex query: 010C
+[0000157431] (OBD_BUS): Raw payload answer received: OK
+[0000157432] (OBD_BUS): Setting target header to ATSH7E0
+[0000157492] (OBD_BUS): Sending hex query: 010D
+[0000157501] (OBD_BUS): Raw payload answer received: OK
+[0000157502] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000157570] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000157570] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000158944] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000158944] (OBD_BUS): Setting target header to ATSH418F02
+[0000159004] (OBD_BUS): Sending hex query: 2211B2
+[0000159013] (OBD_BUS): Raw payload answer received: OK
+[0000159013] (OBD_BUS): Setting target header to ATSH7E0
+[0000159073] (OBD_BUS): Sending hex query: 010B
+[0000159081] (OBD_BUS): Raw payload answer received: OK
+[0000159082] (OBD_BUS): Setting target header to ATSH7E0
+[0000159142] (OBD_BUS): Sending hex query: 2209D0
+[0000159153] (OBD_BUS): Raw payload answer received: OK
+[0000159153] (OBD_BUS): Setting target header to ATSH7E0
+[0000159213] (OBD_BUS): Sending hex query: 221139
+[0000159221] (OBD_BUS): Raw payload answer received: OK
+[0000159222] (OBD_BUS): Setting target header to ATSH7E0
+[0000159282] (OBD_BUS): Sending hex query: 221E1C
+[0000159291] (OBD_BUS): Raw payload answer received: OK
+[0000159292] (OBD_BUS): Setting target header to ATSH7E0
+[0000159352] (OBD_BUS): Sending hex query: 0142
+[0000159361] (OBD_BUS): Raw payload answer received: OK
+[0000159362] (OBD_BUS): Setting target header to ATSH7E0
+[0000159422] (OBD_BUS): Sending hex query: 010C
+[0000159431] (OBD_BUS): Raw payload answer received: OK
+[0000159432] (OBD_BUS): Setting target header to ATSH7E0
+[0000159492] (OBD_BUS): Sending hex query: 010D
+[0000159501] (OBD_BUS): Raw payload answer received: OK
+[0000159502] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000159570] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000159570] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000160945] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000160945] (OBD_BUS): Setting target header to ATSH418F02
+[0000161005] (OBD_BUS): Sending hex query: 2211B2
+[0000161014] (OBD_BUS): Raw payload answer received: OK
+[0000161014] (OBD_BUS): Setting target header to ATSH7E0
+[0000161075] (OBD_BUS): Sending hex query: 010B
+[0000161084] (OBD_BUS): Raw payload answer received: OK
+[0000161084] (OBD_BUS): Setting target header to ATSH7E0
+[0000161145] (OBD_BUS): Sending hex query: 2209D0
+[0000161154] (OBD_BUS): Raw payload answer received: OK
+[0000161154] (OBD_BUS): Setting target header to ATSH7E0
+[0000161215] (OBD_BUS): Sending hex query: 221139
+[0000161224] (OBD_BUS): Raw payload answer received: OK
+[0000161224] (OBD_BUS): Setting target header to ATSH7E0
+[0000161284] (OBD_BUS): Sending hex query: 221E1C
+[0000161293] (OBD_BUS): Raw payload answer received: OK
+[0000161293] (OBD_BUS): Setting target header to ATSH7E0
+[0000161353] (OBD_BUS): Sending hex query: 0142
+[0000161361] (OBD_BUS): Raw payload answer received: OK
+[0000161362] (OBD_BUS): Setting target header to ATSH7E0
+[0000161422] (OBD_BUS): Sending hex query: 010C
+[0000161431] (OBD_BUS): Raw payload answer received: OK
+[0000161432] (OBD_BUS): Setting target header to ATSH7E0
+[0000161492] (OBD_BUS): Sending hex query: 010D
+[0000161501] (OBD_BUS): Raw payload answer received: OK
+[0000161502] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000161570] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000161570] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000162946] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000162946] (OBD_BUS): Setting target header to ATSH418F02
+[0000163006] (OBD_BUS): Sending hex query: 2211B2
+[0000163015] (OBD_BUS): Raw payload answer received: OK
+[0000163015] (OBD_BUS): Setting target header to ATSH7E0
+[0000163076] (OBD_BUS): Sending hex query: 010B
+[0000163090] (OBD_BUS): Raw payload answer received: OK
+[0000163090] (OBD_BUS): Setting target header to ATSH7E0
+[0000163151] (OBD_BUS): Sending hex query: 2209D0
+[0000163160] (OBD_BUS): Raw payload answer received: OK
+[0000163160] (OBD_BUS): Setting target header to ATSH7E0
+[0000163221] (OBD_BUS): Sending hex query: 221139
+[0000163230] (OBD_BUS): Raw payload answer received: OK
+[0000163230] (OBD_BUS): Setting target header to ATSH7E0
+[0000163291] (OBD_BUS): Sending hex query: 221E1C
+[0000163300] (OBD_BUS): Raw payload answer received: OK
+[0000163300] (OBD_BUS): Setting target header to ATSH7E0
+[0000163361] (OBD_BUS): Sending hex query: 0142
+[0000163370] (OBD_BUS): Raw payload answer received: OK
+[0000163370] (OBD_BUS): Setting target header to ATSH7E0
+[0000163431] (OBD_BUS): Sending hex query: 010C
+[0000163440] (OBD_BUS): Raw payload answer received: OK
+[0000163440] (OBD_BUS): Setting target header to ATSH7E0
+[0000163501] (OBD_BUS): Sending hex query: 010D
+[0000163513] (OBD_BUS): Raw payload answer received: OK
+[0000163513] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000163582] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000163582] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000164947] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000164947] (OBD_BUS): Setting target header to ATSH418F02
+[0000165007] (OBD_BUS): Sending hex query: 2211B2
+[0000165018] (OBD_BUS): Raw payload answer received: OK
+[0000165018] (OBD_BUS): Setting target header to ATSH7E0
+[0000165078] (OBD_BUS): Sending hex query: 010B
+[0000165086] (OBD_BUS): Raw payload answer received: OK
+[0000165087] (OBD_BUS): Setting target header to ATSH7E0
+[0000165147] (OBD_BUS): Sending hex query: 2209D0
+[0000165156] (OBD_BUS): Raw payload answer received: OK
+[0000165157] (OBD_BUS): Setting target header to ATSH7E0
+[0000165217] (OBD_BUS): Sending hex query: 221139
+[0000165226] (OBD_BUS): Raw payload answer received: OK
+[0000165227] (OBD_BUS): Setting target header to ATSH7E0
+[0000165287] (OBD_BUS): Sending hex query: 221E1C
+[0000165296] (OBD_BUS): Raw payload answer received: OK
+[0000165297] (OBD_BUS): Setting target header to ATSH7E0
+[0000165357] (OBD_BUS): Sending hex query: 0142
+[0000165366] (OBD_BUS): Raw payload answer received: OK
+[0000165367] (OBD_BUS): Setting target header to ATSH7E0
+[0000165427] (OBD_BUS): Sending hex query: 010C
+[0000165436] (OBD_BUS): Raw payload answer received: OK
+[0000165437] (OBD_BUS): Setting target header to ATSH7E0
+[0000165497] (OBD_BUS): Sending hex query: 010D
+[0000165506] (OBD_BUS): Raw payload answer received: OK
+[0000165507] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000165575] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000165575] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000166948] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000166948] (OBD_BUS): Setting target header to ATSH418F02
+[0000167008] (OBD_BUS): Sending hex query: 2211B2
+[0000167015] (OBD_BUS): Raw payload answer received: OK
+[0000167015] (OBD_BUS): Setting target header to ATSH7E0
+[0000167075] (OBD_BUS): Sending hex query: 010B
+[0000167160] (OBD_BUS): Raw payload answer received: NODATA
+[0000167160] (OBD_BUS): Setting target header to ATSH7E0
+[0000167221] (OBD_BUS): Sending hex query: 2209D0
+[0000167231] (OBD_BUS): Raw payload answer received: OK
+[0000167232] (OBD_BUS): Setting target header to ATSH7E0
+[0000167292] (OBD_BUS): Sending hex query: 221139
+[0000167302] (OBD_BUS): Raw payload answer received: OK
+[0000167302] (OBD_BUS): Setting target header to ATSH7E0
+[0000167363] (OBD_BUS): Sending hex query: 221E1C
+[0000167378] (OBD_BUS): Raw payload answer received: OK
+[0000167378] (OBD_BUS): Setting target header to ATSH7E0
+[0000167438] (OBD_BUS): Sending hex query: 0142
+[0000167449] (OBD_BUS): Raw payload answer received: OK
+[0000167449] (OBD_BUS): Setting target header to ATSH7E0
+[0000167510] (OBD_BUS): Sending hex query: 010C
+[0000167519] (OBD_BUS): Raw payload answer received: OK
+[0000167519] (OBD_BUS): Setting target header to ATSH7E0
+[0000167580] (OBD_BUS): Sending hex query: 010D
+[0000167589] (OBD_BUS): Raw payload answer received: OK
+[0000167589] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000167659] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000167659] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000168949] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000168949] (OBD_BUS): Setting target header to ATSH418F02
+[0000169009] (OBD_BUS): Sending hex query: 2211B2
+[0000169016] (OBD_BUS): Raw payload answer received: OK
+[0000169016] (OBD_BUS): Setting target header to ATSH7E0
+[0000169077] (OBD_BUS): Sending hex query: 010B
+[0000169163] (OBD_BUS): Raw payload answer received: NODATA
+[0000169163] (OBD_BUS): Setting target header to ATSH7E0
+[0000169223] (OBD_BUS): Sending hex query: 2209D0
+[0000169231] (OBD_BUS): Raw payload answer received: OK
+[0000169232] (OBD_BUS): Setting target header to ATSH7E0
+[0000169292] (OBD_BUS): Sending hex query: 221139
+[0000169301] (OBD_BUS): Raw payload answer received: OK
+[0000169302] (OBD_BUS): Setting target header to ATSH7E0
+[0000169362] (OBD_BUS): Sending hex query: 221E1C
+[0000169373] (OBD_BUS): Raw payload answer received: OK
+[0000169373] (OBD_BUS): Setting target header to ATSH7E0
+[0000169433] (OBD_BUS): Sending hex query: 0142
+[0000169441] (OBD_BUS): Raw payload answer received: OK
+[0000169442] (OBD_BUS): Setting target header to ATSH7E0
+[0000169502] (OBD_BUS): Sending hex query: 010C
+[0000169511] (OBD_BUS): Raw payload answer received: OK
+[0000169512] (OBD_BUS): Setting target header to ATSH7E0
+[0000169572] (OBD_BUS): Sending hex query: 010D
+[0000169581] (OBD_BUS): Raw payload answer received: OK
+[0000169582] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000169650] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000169650] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000170950] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000170950] (OBD_BUS): Setting target header to ATSH418F02
+[0000171010] (OBD_BUS): Sending hex query: 2211B2
+[0000171017] (OBD_BUS): Raw payload answer received: OK
+[0000171017] (OBD_BUS): Setting target header to ATSH7E0
+[0000171078] (OBD_BUS): Sending hex query: 010B
+[0000171163] (OBD_BUS): Raw payload answer received: NODATA
+[0000171163] (OBD_BUS): Setting target header to ATSH7E0
+[0000171223] (OBD_BUS): Sending hex query: 2209D0
+[0000171231] (OBD_BUS): Raw payload answer received: OK
+[0000171232] (OBD_BUS): Setting target header to ATSH7E0
+[0000171292] (OBD_BUS): Sending hex query: 221139
+[0000171300] (OBD_BUS): Raw payload answer received: OK
+[0000171300] (OBD_BUS): Setting target header to ATSH7E0
+[0000171361] (OBD_BUS): Sending hex query: 221E1C
+[0000171370] (OBD_BUS): Raw payload answer received: OK
+[0000171370] (OBD_BUS): Setting target header to ATSH7E0
+[0000171431] (OBD_BUS): Sending hex query: 0142
+[0000171440] (OBD_BUS): Raw payload answer received: OK
+[0000171440] (OBD_BUS): Setting target header to ATSH7E0
+[0000171501] (OBD_BUS): Sending hex query: 010C
+[0000171510] (OBD_BUS): Raw payload answer received: OK
+[0000171510] (OBD_BUS): Setting target header to ATSH7E0
+[0000171571] (OBD_BUS): Sending hex query: 010D
+[0000171580] (OBD_BUS): Raw payload answer received: OK
+[0000171580] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000171650] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000171650] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000172951] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000172951] (OBD_BUS): Setting target header to ATSH418F02
+[0000173011] (OBD_BUS): Sending hex query: 2211B2
+[0000173018] (OBD_BUS): Raw payload answer received: OK
+[0000173019] (OBD_BUS): Setting target header to ATSH7E0
+[0000173079] (OBD_BUS): Sending hex query: 010B
+[0000173164] (OBD_BUS): Raw payload answer received: NODATA
+[0000173164] (OBD_BUS): Setting target header to ATSH7E0
+[0000173224] (OBD_BUS): Sending hex query: 2209D0
+[0000173233] (OBD_BUS): Raw payload answer received: OK
+[0000173233] (OBD_BUS): Setting target header to ATSH7E0
+[0000173293] (OBD_BUS): Sending hex query: 221139
+[0000173301] (OBD_BUS): Raw payload answer received: OK
+[0000173302] (OBD_BUS): Setting target header to ATSH7E0
+[0000173362] (OBD_BUS): Sending hex query: 221E1C
+[0000173371] (OBD_BUS): Raw payload answer received: OK
+[0000173372] (OBD_BUS): Setting target header to ATSH7E0
+[0000173432] (OBD_BUS): Sending hex query: 0142
+[0000173446] (OBD_BUS): Raw payload answer received: OK
+[0000173447] (OBD_BUS): Setting target header to ATSH7E0
+[0000173507] (OBD_BUS): Sending hex query: 010C
+[0000173516] (OBD_BUS): Raw payload answer received: OK
+[0000173517] (OBD_BUS): Setting target header to ATSH7E0
+[0000173577] (OBD_BUS): Sending hex query: 010D
+[0000173586] (OBD_BUS): Raw payload answer received: OK
+[0000173587] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000173655] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000173655] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000174952] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000174952] (OBD_BUS): Setting target header to ATSH418F02
+[0000175012] (OBD_BUS): Sending hex query: 2211B2
+[0000175020] (OBD_BUS): Raw payload answer received: OK
+[0000175020] (OBD_BUS): Setting target header to ATSH7E0
+[0000175080] (OBD_BUS): Sending hex query: 010B
+[0000175175] (OBD_BUS): Raw payload answer received: NODATA
+[0000175175] (OBD_BUS): Setting target header to ATSH7E0
+[0000175236] (OBD_BUS): Sending hex query: 2209D0
+[0000175245] (OBD_BUS): Raw payload answer received: OK
+[0000175245] (OBD_BUS): Setting target header to ATSH7E0
+[0000175306] (OBD_BUS): Sending hex query: 221139
+[0000175315] (OBD_BUS): Raw payload answer received: OK
+[0000175315] (OBD_BUS): Setting target header to ATSH7E0
+[0000175376] (OBD_BUS): Sending hex query: 221E1C
+[0000175386] (OBD_BUS): Raw payload answer received: OK
+[0000175386] (OBD_BUS): Setting target header to ATSH7E0
+[0000175447] (OBD_BUS): Sending hex query: 0142
+[0000175456] (OBD_BUS): Raw payload answer received: OK
+[0000175457] (OBD_BUS): Setting target header to ATSH7E0
+[0000175517] (OBD_BUS): Sending hex query: 010C
+[0000175526] (OBD_BUS): Raw payload answer received: OK
+[0000175527] (OBD_BUS): Setting target header to ATSH7E0
+[0000175587] (OBD_BUS): Sending hex query: 010D
+[0000175596] (OBD_BUS): Raw payload answer received: OK
+[0000175597] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000175665] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000175665] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000176953] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000176953] (OBD_BUS): Setting target header to ATSH418F02
+[0000177013] (OBD_BUS): Sending hex query: 2211B2
+[0000177023] (OBD_BUS): Raw payload answer received: OK
+[0000177023] (OBD_BUS): Setting target header to ATSH7E0
+[0000177083] (OBD_BUS): Sending hex query: 010B
+[0000177093] (OBD_BUS): Raw payload answer received: OK
+[0000177093] (OBD_BUS): Setting target header to ATSH7E0
+[0000177153] (OBD_BUS): Sending hex query: 2209D0
+[0000177161] (OBD_BUS): Raw payload answer received: OK
+[0000177162] (OBD_BUS): Setting target header to ATSH7E0
+[0000177222] (OBD_BUS): Sending hex query: 221139
+[0000177231] (OBD_BUS): Raw payload answer received: OK
+[0000177232] (OBD_BUS): Setting target header to ATSH7E0
+[0000177292] (OBD_BUS): Sending hex query: 221E1C
+[0000177313] (OBD_BUS): Raw payload answer received: OK
+[0000177313] (OBD_BUS): Setting target header to ATSH7E0
+[0000177373] (OBD_BUS): Sending hex query: 0142
+[0000177383] (OBD_BUS): Raw payload answer received: OK
+[0000177383] (OBD_BUS): Setting target header to ATSH7E0
+[0000177443] (OBD_BUS): Sending hex query: 010C
+[0000177451] (OBD_BUS): Raw payload answer received: OK
+[0000177452] (OBD_BUS): Setting target header to ATSH7E0
+[0000177512] (OBD_BUS): Sending hex query: 010D
+[0000177521] (OBD_BUS): Raw payload answer received: OK
+[0000177522] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000177592] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000177592] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000178954] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000178954] (OBD_BUS): Setting target header to ATSH418F02
+[0000179014] (OBD_BUS): Sending hex query: 2211B2
+[0000179030] (OBD_BUS): Raw payload answer received: OK
+[0000179030] (OBD_BUS): Setting target header to ATSH7E0
+[0000179091] (OBD_BUS): Sending hex query: 010B
+[0000179100] (OBD_BUS): Raw payload answer received: OK
+[0000179100] (OBD_BUS): Setting target header to ATSH7E0
+[0000179161] (OBD_BUS): Sending hex query: 2209D0
+[0000179170] (OBD_BUS): Raw payload answer received: OK
+[0000179170] (OBD_BUS): Setting target header to ATSH7E0
+[0000179231] (OBD_BUS): Sending hex query: 221139
+[0000179240] (OBD_BUS): Raw payload answer received: OK
+[0000179240] (OBD_BUS): Setting target header to ATSH7E0
+[0000179301] (OBD_BUS): Sending hex query: 221E1C
+[0000179310] (OBD_BUS): Raw payload answer received: OK
+[0000179310] (OBD_BUS): Setting target header to ATSH7E0
+[0000179371] (OBD_BUS): Sending hex query: 0142
+[0000179380] (OBD_BUS): Raw payload answer received: OK
+[0000179380] (OBD_BUS): Setting target header to ATSH7E0
+[0000179441] (OBD_BUS): Sending hex query: 010C
+[0000179450] (OBD_BUS): Raw payload answer received: OK
+[0000179450] (OBD_BUS): Setting target header to ATSH7E0
+[0000179511] (OBD_BUS): Sending hex query: 010D
+[0000179520] (OBD_BUS): Raw payload answer received: OK
+[0000179520] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000179590] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000179590] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000180955] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000180955] (OBD_BUS): Setting target header to ATSH418F02
+[0000181015] (OBD_BUS): Sending hex query: 2211B2
+[0000181024] (OBD_BUS): Raw payload answer received: OK
+[0000181024] (OBD_BUS): Setting target header to ATSH7E0
+[0000181085] (OBD_BUS): Sending hex query: 010B
+[0000181094] (OBD_BUS): Raw payload answer received: OK
+[0000181094] (OBD_BUS): Setting target header to ATSH7E0
+[0000181155] (OBD_BUS): Sending hex query: 2209D0
+[0000181165] (OBD_BUS): Raw payload answer received: OK
+[0000181165] (OBD_BUS): Setting target header to ATSH7E0
+[0000181226] (OBD_BUS): Sending hex query: 221139
+[0000181235] (OBD_BUS): Raw payload answer received: OK
+[0000181235] (OBD_BUS): Setting target header to ATSH7E0
+[0000181296] (OBD_BUS): Sending hex query: 221E1C
+[0000181305] (OBD_BUS): Raw payload answer received: OK
+[0000181305] (OBD_BUS): Setting target header to ATSH7E0
+[0000181366] (OBD_BUS): Sending hex query: 0142
+[0000181375] (OBD_BUS): Raw payload answer received: OK
+[0000181375] (OBD_BUS): Setting target header to ATSH7E0
+[0000181436] (OBD_BUS): Sending hex query: 010C
+[0000181445] (OBD_BUS): Raw payload answer received: OK
+[0000181445] (OBD_BUS): Setting target header to ATSH7E0
+[0000181506] (OBD_BUS): Sending hex query: 010D
+[0000181515] (OBD_BUS): Raw payload answer received: OK
+[0000181515] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000181587] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000181587] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000182956] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000182956] (OBD_BUS): Setting target header to ATSH418F02
+[0000183016] (OBD_BUS): Sending hex query: 2211B2
+[0000183025] (OBD_BUS): Raw payload answer received: OK
+[0000183025] (OBD_BUS): Setting target header to ATSH7E0
+[0000183086] (OBD_BUS): Sending hex query: 010B
+[0000183095] (OBD_BUS): Raw payload answer received: OK
+[0000183095] (OBD_BUS): Setting target header to ATSH7E0
+[0000183156] (OBD_BUS): Sending hex query: 2209D0
+[0000183165] (OBD_BUS): Raw payload answer received: OK
+[0000183165] (OBD_BUS): Setting target header to ATSH7E0
+[0000183226] (OBD_BUS): Sending hex query: 221139
+[0000183235] (OBD_BUS): Raw payload answer received: OK
+[0000183235] (OBD_BUS): Setting target header to ATSH7E0
+[0000183296] (OBD_BUS): Sending hex query: 221E1C
+[0000183305] (OBD_BUS): Raw payload answer received: OK
+[0000183305] (OBD_BUS): Setting target header to ATSH7E0
+[0000183366] (OBD_BUS): Sending hex query: 0142
+[0000183375] (OBD_BUS): Raw payload answer received: OK
+[0000183375] (OBD_BUS): Setting target header to ATSH7E0
+[0000183436] (OBD_BUS): Sending hex query: 010C
+[0000183445] (OBD_BUS): Raw payload answer received: OK
+[0000183445] (OBD_BUS): Setting target header to ATSH7E0
+[0000183506] (OBD_BUS): Sending hex query: 010D
+[0000183515] (OBD_BUS): Raw payload answer received: OK
+[0000183515] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000183585] (OBD_WARN): No valid reply to 03. Raw: OK
+[0000183586] (SYS_POLL): Sweep done. TCase:--- | Boost:0.0 | FICM:121.6
+[0000184957] (SYS_POLL): Executing routine vehicle sensor sweep...
+[0000184957] (OBD_BUS): Setting target header to ATSH418F02
+[0000185017] (OBD_BUS): Sending hex query: 2211B2
+[0000185025] (OBD_BUS): Raw payload answer received: OK
+[0000185025] (OBD_BUS): Setting target header to ATSH7E0
+[0000185085] (OBD_BUS): Sending hex query: 010B
+[0000185176] (OBD_BUS): Raw payload answer received: NODATA
+[0000185177] (OBD_BUS): Setting target header to ATSH7E0
+[0000185237] (OBD_BUS): Sending hex query: 2209D0
+[0000185246] (OBD_BUS): Raw payload answer received: OK
+[0000185247] (OBD_BUS): Setting target header to ATSH7E0
+[0000185307] (OBD_BUS): Sending hex query: 221139
+[0000185316] (OBD_BUS): Raw payload answer received: OK
+[0000185317] (OBD_BUS): Setting target header to ATSH7E0
+[0000185377] (OBD_BUS): Sending hex query: 221E1C
+[0000185386] (OBD_BUS): Raw payload answer received: OK
+[0000185387] (OBD_BUS): Setting target header to ATSH7E0
+[0000185447] (OBD_BUS): Sending hex query: 0142
+[0000185456] (OBD_BUS): Raw payload answer received: OK
+[0000185457] (OBD_BUS): Setting target header to ATSH7E0
+[0000185517] (OBD_BUS): Sending hex query: 010C
+[0000185528] (OBD_BUS): Raw payload answer received: OK
+[0000185528] (OBD_BUS): Setting target header to ATSH7E0
+[0000185588] (OBD_BUS): Sending hex query: 010D
+[0000185596] (OBD_BUS): Raw payload answer received: OK
+[0000185597] (OBD_DTC): Scanning Mode 03 diagnostic trouble registers...
+[0000185665] (OBD_WARN): No valid reply to 03. Raw: OK

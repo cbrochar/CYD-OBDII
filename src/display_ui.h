@@ -22,29 +22,31 @@ const int PIP_Y        = 204;
 // Pages are filled in order, METRICS_PER_PAGE at a time.
 // To add/reorder a value, edit this table (and TOTAL_PAGES in config.h).
 // Values are stored WITHOUT units; the unit is drawn separately in a smaller font.
+// poll reads that value from the truck; only on-screen metrics are polled.
 struct Metric {
     const char* label;
     String*     value;
     const char* unit;
     uint32_t    color;
+    void      (*poll)();
 };
 
 static const Metric metrics[] = {
     // Page 0
-    {"TRANSFER CASE",  &valTCase,  "",    TFT_ORANGE},
-    {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN},
-    {"VEHICLE SPEED",  &valSpeed,  "MPH", TFT_SKYBLUE},
-    {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA},
+    {"TRANSFER CASE",  &valTCase,  "",    TFT_ORANGE,  pollTCase},
+    {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN,    pollBoost},
+    {"VEHICLE SPEED",  &valSpeed,  "MPH", TFT_SKYBLUE, pollSpeed},
+    {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA, pollTFT},
     // Page 1
-    {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN},
-    {"COOLANT TEMP",   &valECT,    "F",   TFT_RED},
-    {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW},
-    {"ENGINE RPM",     &valRPM,    "",    TFT_WHITE},
+    {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN,   pollFICM},
+    {"COOLANT TEMP",   &valECT,    "F",   TFT_RED,     pollECT},
+    {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW,  pollVolts},
+    {"ENGINE RPM",     &valRPM,    "",    TFT_WHITE,   pollRPM},
     // Page 2 (ABS) - fronts on top, rear axle bottom-left;
     // the 4th slot is the ABS warning card (drawn by drawAbsStatusCard, not this table)
-    {"LF WHEEL SPD",   &valWheelLF,   "MPH", TFT_SKYBLUE},
-    {"RF WHEEL SPD",   &valWheelRF,   "MPH", TFT_SKYBLUE},
-    {"REAR AXLE SPD",  &valWheelRear, "MPH", TFT_CYAN},
+    {"LF WHEEL SPD",   &valWheelLF,   "MPH", TFT_SKYBLUE, pollWheelLF},
+    {"RF WHEEL SPD",   &valWheelRF,   "MPH", TFT_SKYBLUE, pollWheelRF},
+    {"REAR AXLE SPD",  &valWheelRear, "MPH", TFT_CYAN,    pollWheelRear},
 };
 static const int METRIC_COUNT = sizeof(metrics) / sizeof(metrics[0]);
 static_assert(METRIC_COUNT <= METRIC_PAGES * METRICS_PER_PAGE,
@@ -53,6 +55,18 @@ static_assert(METRIC_COUNT <= PAGE_ABS * METRICS_PER_PAGE + 3,
               "The ABS page's 4th slot is reserved for the ABS status card");
 static_assert(PAGE_DTC == METRIC_PAGES && TOTAL_PAGES == METRIC_PAGES + 1,
               "The DTC page must come right after the metric pages");
+
+inline void pollVisibleMetrics() {
+    if (fullScreenMetric >= 0) {
+        metrics[fullScreenMetric].poll();
+        return;
+    }
+    for (int slot = 0; slot < METRICS_PER_PAGE; slot++) {
+        int idx = currentPage * METRICS_PER_PAGE + slot;
+        if (currentPage >= METRIC_PAGES || idx >= METRIC_COUNT) break;
+        metrics[idx].poll();
+    }
+}
 
 // ---- Status bar --------------------------------------------------------------
 // Drawn directly on the TFT. Only repaints when its text changes.
@@ -219,6 +233,76 @@ inline void buildPage(int pageNum) {
     }
 }
 
+// ---- Full-screen gauge --------------------------------------------------------
+// One metric filling the canvas: label on top, value as large as fits, unit below.
+inline void buildFullScreen(int idx) {
+    const Metric& m = metrics[idx];
+    canvas.fillSprite(TFT_BLACK);
+    canvas.drawRect(4, 4, 312, CANVAS_H - 8, m.color);
+    canvas.drawRect(5, 5, 310, CANVAS_H - 10, m.color);
+
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    canvas.drawCentreString(m.label, 160, 14, 4);
+
+    // Largest font-4 scale (4 down to 1) that fits the width
+    int size = 4;
+    canvas.setTextSize(size);
+    while (size > 1 && canvas.textWidth(*m.value, 4) > 292) canvas.setTextSize(--size);
+    int valH = canvas.fontHeight(4);
+    canvas.setTextColor(m.color, TFT_BLACK);
+    canvas.drawCentreString(*m.value, 160, 46 + (116 - valH) / 2, 4);
+
+    canvas.setTextSize(1);
+    if (m.unit[0]) {
+        canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+        canvas.drawCentreString(m.unit, 160, 160, 4);
+    }
+    canvas.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    canvas.drawCentreString("TAP TO RETURN", 160, CANVAS_H - 24, 2);
+}
+
+// ---- Tap menu --------------------------------------------------------------------
+// Tapping a gauge highlights it and shows two buttons over the page.
+// Button rectangles are in canvas coordinates.
+const int MENU_BTN_Y = 62, MENU_BTN_H = 70, MENU_BTN_W = 136;
+const int MENU_NEXT_X = 16, MENU_FULL_X = 168;
+
+inline bool inButton(int cx, int cy, int bx) {
+    return cx >= bx && cx < bx + MENU_BTN_W && cy >= MENU_BTN_Y && cy < MENU_BTN_Y + MENU_BTN_H;
+}
+
+inline void drawMenuButton(int bx, const char* line1, const char* line2, uint32_t color) {
+    canvas.fillRoundRect(bx, MENU_BTN_Y, MENU_BTN_W, MENU_BTN_H, 8, TFT_BLACK);
+    canvas.drawRoundRect(bx, MENU_BTN_Y, MENU_BTN_W, MENU_BTN_H, 8, color);
+    canvas.drawRoundRect(bx + 1, MENU_BTN_Y + 1, MENU_BTN_W - 2, MENU_BTN_H - 2, 7, color);
+    canvas.setTextSize(1);
+    canvas.setTextColor(color, TFT_BLACK);
+    canvas.drawCentreString(line1, bx + MENU_BTN_W / 2, MENU_BTN_Y + 10, 4);
+    canvas.drawCentreString(line2, bx + MENU_BTN_W / 2, MENU_BTN_Y + 38, 4);
+}
+
+inline void drawTapMenu(int idx) {
+    int slot = idx % METRICS_PER_PAGE;
+    int x = COL_X[slot % 2], y = ROW_Y[slot / 2];
+    canvas.drawRect(x - 2, y - 2, CARD_W + 4, CARD_H + 4, TFT_WHITE);   // highlight the tapped gauge
+    canvas.drawRect(x - 3, y - 3, CARD_W + 6, CARD_H + 6, TFT_WHITE);
+
+    drawMenuButton(MENU_NEXT_X, "NEXT", "PAGE", TFT_WHITE);
+    drawMenuButton(MENU_FULL_X, "FULL", "SCREEN", metrics[idx].color);
+}
+
+// Draws whatever should be on screen now (full-screen gauge, or page + tap menu)
+inline void drawCurrentScreen() {
+    if (fullScreenMetric >= 0) {
+        buildFullScreen(fullScreenMetric);
+    } else {
+        buildPage(currentPage);
+        if (menuMetric >= 0) drawTapMenu(menuMetric);
+    }
+    canvas.pushSprite(0, CANVAS_Y);
+}
+
 // Animates horizontal page swiping transitions (works offline too)
 inline void scrollToNextPage() {
     int nextPage = (currentPage + 1) % TOTAL_PAGES;
@@ -234,6 +318,48 @@ inline void scrollToNextPage() {
     }
 
     currentPage = nextPage;
+}
+
+// Which metric card is under a canvas point on the current page (-1 = none:
+// DTC page, ABS status card, or an empty slot)
+inline int metricAtPoint(int cx, int cy) {
+    if (currentPage >= METRIC_PAGES) return -1;
+    int slot = (cy < ROW_Y[1] ? 0 : 2) + (cx < COL_X[1] ? 0 : 1);
+    int idx = currentPage * METRICS_PER_PAGE + slot;
+    return (idx < METRIC_COUNT) ? idx : -1;
+}
+
+// Handles one tap at screen coordinates (sx, sy).
+//   Full screen     -> back to the page
+//   Menu showing    -> NEXT PAGE / FULL SCREEN, or tap elsewhere to close it
+//   Tap on a gauge  -> show the menu for that gauge
+//   Tap elsewhere   -> next page (DTC page, ABS status card)
+inline void handleTap(int sx, int sy) {
+    int cx = sx, cy = max(0, sy - CANVAS_Y);
+
+    if (fullScreenMetric >= 0) {
+        logDebug("UI_NAV", "Leaving full screen");
+        fullScreenMetric = -1;
+    } else if (menuMetric >= 0) {
+        int idx = menuMetric;
+        menuMetric = -1;
+        if (inButton(cx, cy, MENU_NEXT_X)) {
+            scrollToNextPage();
+        } else if (inButton(cx, cy, MENU_FULL_X)) {
+            logDebug("UI_NAV", "Full screen: " + String(metrics[idx].label));
+            fullScreenMetric = idx;
+        }
+    } else {
+        int idx = metricAtPoint(cx, cy);
+        if (idx < 0) {
+            scrollToNextPage();
+        } else {
+            menuMetric = idx;
+            menuShownAt = millis();
+        }
+    }
+    lastBusQuery = 0;   // refresh straight away for whatever is now on screen
+    drawCurrentScreen();
 }
 
 // Renders a high-contrast welcome screen before wireless networks engage

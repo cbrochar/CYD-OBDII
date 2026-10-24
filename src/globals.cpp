@@ -15,6 +15,9 @@ unsigned long lastBusQuery = 0;
 unsigned long lastTouchDebounce = 0;
 unsigned long lastBtRetry = 0;
 int currentPage = 0;
+int menuMetric = -1;
+unsigned long menuShownAt = 0;
+int fullScreenMetric = -1;
 
 // Metric Data Handlers
 String valTCase = "---";
