@@ -31,7 +31,7 @@ Without an adapter it runs on demo values, so you can test the screens on the be
 |---|---|
 | ESP32-2432S028R ("Cheap Yellow Display") | 2.8" 320×240 ILI9341 screen, XPT2046 resistive touch |
 | Bluetooth Classic ELM327 OBD-II adapter | Tested with an ELM327 v1.4b clone. Must be **Bluetooth Classic** (SPP), not BLE-only. |
-| 3D-printed case | STL files in [`hardware/case/`](hardware/case/) |
+| 3D-printed case | [Modular CYD case](https://www.thingiverse.com/thing:6991968) by DanielBrunod, remixed from [ncmreynolds' CYD enclosure](https://www.thingiverse.com/thing:6308391) (CC BY-SA). STL files in [`hardware/case/`](hardware/case/) |
 | USB power in the truck | 5 V via the CYD's USB port |
 
 No wiring is needed: the screen and touch are built into the CYD, and the adapter plugs
@@ -160,6 +160,12 @@ CYD-OBDII/
 - [ ] Find the transfer case module and its address with FORScan (it may be on MS-CAN)
 - [ ] Real ABS wheel-speed PIDs and scaling
 - [ ] Confirm coolant temp, trans temp and DTC reads in a new truck log
+- [ ] Hard-wire the CYD to the CAN bus instead of using the Bluetooth ELM327 adapter
+      (the ESP32 has a built-in CAN controller, called TWAI; it needs a 3.3 V CAN transceiver
+      such as an SN65HVD230 and two free GPIO pins)
+- [ ] Confirm the device doesn't drain the truck battery with the key off. The OBD port's
+      power pin is live all the time, so a plugged-in adapter, and the CYD if it's powered
+      from an always-on source, keep drawing current while the truck is parked.
 
 ## Safety
 
