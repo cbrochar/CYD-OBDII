@@ -39,7 +39,8 @@ into the truck's OBD-II port under the dash.
 
 ## Vehicle / bus facts
 
-These were confirmed on the truck with a PC and `obd_logger.py`:
+These were confirmed on the truck with a PC and [`tools/obd_logger.py`](tools/) (see
+[PC logging tool](#pc-logging-tool)):
 
 - Protocol: **ISO 15765-4 CAN, 11-bit, 500 kbps** (ELM protocol 6, `ATSP6`), *not* J1850 PWM
 - Engine PCM: requests to **7E0**, replies from **7E8**. A second module (7E9, likely the
@@ -126,10 +127,27 @@ CYD-OBDII/
 │   ├── obd_engine.h     ELM327 communication, PID decoding, DTC reading, Bluetooth task
 │   └── display_ui.h     Gauge table, cards, full-screen gauge, tap menu, status bar, pages
 ├── hardware/
-│   └── case/            3D-printable case (STL files)
+│   └── case/            3D-printable case (STL files, credits, build notes)
+├── tools/
+│   └── obd_logger.py    PC script that surveys the truck through a USB ELM327 and writes a log
+├── docs/                Reference captures from the truck
 └── test/
     └── serialLog.txt    Serial log captured in the truck (used to fix reply timing and FICM scaling)
 ```
+
+## PC logging tool
+
+[`tools/obd_logger.py`](tools/) is a Python script for a PC with a USB ELM327 adapter. It finds
+the protocol and every module that answers, lists each module's supported PIDs, reads and
+decodes them, measures response times, and writes everything, including a raw transcript, to one
+text file. Use the log to choose the PIDs and formulas for the firmware. It only sends read requests.
+
+```bash
+pip install pyserial
+python tools/obd_logger.py --note "engine idling, warm"
+```
+
+See [`tools/README.md`](tools/README.md) for the options and how to add Ford-specific PIDs.
 
 ## How it works
 
