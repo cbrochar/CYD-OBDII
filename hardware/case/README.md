@@ -5,7 +5,7 @@ GitHub shows a 3D preview when you click an STL file.
 
 | File | Part | Notes |
 |---|---|---|
-| [CYDEncolsureFront.stl](CYDEncolsureFront.stl) | Front shell | Holds the CYD screen |
+| [CYDEnclosureFront.stl](CYDEnclosureFront.stl) | Front shell | Holds the CYD screen |
 | [CYDEnclosureRear.stl](CYDEnclosureRear.stl) | Rear cover | |
 | [CYDEnclosureExtender6mm.stl](CYDEnclosureExtender6mm.stl) | 6 mm extender | Optional spacer between front and rear for extra depth; use one size |
 | [CYDEnclosureExtender10mm.stl](CYDEnclosureExtender10mm.stl) | 10 mm extender | |
