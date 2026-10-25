@@ -34,6 +34,8 @@ String valWheelRear = "---";
 bool hasDTCWarning = false;
 String dtcCodes[MAX_DTCS];
 int dtcTotal = -1;
+String pendingCodes[MAX_DTCS];
+int pendingTotal = -1;
 int absDtcTotal = -1;
 
 void loadDemoValues() {
@@ -51,6 +53,8 @@ void loadDemoValues() {
     dtcCodes[0] = "P0470";
     dtcCodes[1] = "P2291";
     dtcTotal  = 2;
+    pendingCodes[0] = "P0128";
+    pendingTotal = 1;
 }
 
 void clearLiveValues() {
@@ -58,5 +62,5 @@ void clearLiveValues() {
     valTFT = valVolts = valRPM = valSpeed = "---";
     valWheelLF = valWheelRF = valWheelRear = "---";
     hasDTCWarning = false;
-    dtcTotal = absDtcTotal = -1;
+    dtcTotal = pendingTotal = absDtcTotal = -1;
 }

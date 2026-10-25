@@ -3,16 +3,16 @@
 #include "config.h"
 #include "obd_engine.h"
 #include "display_ui.h"
+#include "power.h"
 
 void setup() {
     Serial.begin(115200);
     delay(500);
     logDebug("SYS_INIT", "Powering up ESP32 core subsystems...");
-
-    pinMode(21, OUTPUT);
-    digitalWrite(21, HIGH);
+    powerBegin();
 
     tft.init();
+    backlightBegin();   // PWM backlight, level set from the light sensor (off during a timed check)
     tft.invertDisplay(true);
     tft.setRotation(1);
     drawSplashScreen();
@@ -47,6 +47,7 @@ void setup() {
 
     updateStatusBar(true);
     drawCurrentScreen();
+    if (!wokeByTimer) noteActivity();   // the idle timers start once the screen is up
 }
 
 void loop() {
@@ -81,7 +82,8 @@ void loop() {
         int sy = constrain(map(pt.y, TOUCH_RAW_Y_MIN, TOUCH_RAW_Y_MAX, 0, 239), 0, 239);
         logDebug("TOUCH_ACT", "Tap -> RawX: " + String(pt.x) + ", RawY: " + String(pt.y) +
                               " | Screen: " + String(sx) + "," + String(sy));
-        handleTap(sx, sy);
+        if (screenIsOff) noteActivity();   // this tap only wakes the screen
+        else { noteActivity(); handleTap(sx, sy); }
     }
     wasTouched = touchedNow;
 
@@ -103,4 +105,15 @@ void loop() {
         lastBarCheck = millis();
         updateStatusBar();
     }
+
+    // 5. Battery protection: the PCM answering means the truck is on
+    static unsigned long seenPcmReply = 0;
+    if (lastPcmReplyMs != seenPcmReply) {
+        seenPcmReply = lastPcmReplyMs;
+        noteActivity();
+    }
+    powerTick();
+
+    // 6. Auto brightness from the light sensor
+    backlightTick();
 }

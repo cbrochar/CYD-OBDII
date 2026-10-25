@@ -35,6 +35,10 @@ inline String elmCommand(const String& cmd, unsigned long timeoutMs = 500) {
     return resp;
 }
 
+// millis() of the last valid reply from the engine PCM (7E0). Used by power.h: a
+// Bluetooth link alone doesn't mean the truck is on, but a PCM reply does.
+static unsigned long lastPcmReplyMs = 0;
+
 // Header the ELM is currently set to; ATSH is only sent when it changes.
 // Cleared on every new connection, since the adapter is re-initialised.
 static String currentHeader = "";
@@ -63,6 +67,7 @@ inline String queryCustomPID(const char* header, const char* pid) {
         lineStart = lineEnd + 1;
         if (line.startsWith(replyService)) {
             logDebug("OBD_BUS", String(pid) + " -> " + line);
+            if (strcmp(header, "7E0") == 0) lastPcmReplyMs = millis();
             return line;
         }
     }
@@ -144,41 +149,50 @@ inline String queryMultiFrame(const char* header, const char* cmd, const char* r
         logDebug("OBD_WARN", "No valid reply to " + String(cmd) + ". Raw: " + resp);
         return "";
     }
+    if (strcmp(header, "7E0") == 0) lastPcmReplyMs = millis();
     return payload;
 }
 
-// Scan for Stored Diagnostic Trouble Codes (Mode 03) and fill dtcCodes / dtcTotal.
-// On CAN the reply is "43", a count byte, then 2 bytes per code, e.g. "430204702291".
+// Read a code list from the engine PCM (replies from 7E8) into codes[] and return how
+// many there are, or -1 if it didn't answer. On CAN the reply is the service reply byte
+// ("43" for Mode 03, "47" for Mode 07), a count byte, then 2 bytes per code,
+// e.g. "430204702291" = P0470, P2291.
+inline int readDtcList(const char* service, const char* replyPrefix, String* codes) {
+    String payload = queryMultiFrame("7E0", service, replyPrefix);
+    if (payload.length() < 4) return -1;
+
+    int count = strtol(payload.substring(2, 4).c_str(), NULL, 16);
+    int found = 0;
+    for (int i = 4; i + 4 <= (int)payload.length() && found < count; i += 4) {
+        uint16_t raw = parseHexBytes(payload, i);
+        if (raw == 0) continue;
+        if (found < MAX_DTCS) codes[found] = decodeDTC(raw);
+        found++;
+    }
+    if (found > 0) logDebug("OBD_DTC", "Mode " + String(service) + " payload: " + payload);
+    return found;
+}
+
+// Scan for stored codes (Mode 03: confirmed, check-engine light) into dtcCodes / dtcTotal
+// and pending codes (Mode 07: seen once, not confirmed yet) into pendingCodes / pendingTotal.
+// If the PCM doesn't answer, the last good list is kept rather than claiming they cleared.
 inline void checkStoredDTCs() {
     if (!isConnected) return;
 
-    logDebug("OBD_DTC", "Scanning Mode 03 diagnostic trouble registers...");
-    String payload = queryMultiFrame("7E0", "03", "43");   // engine PCM only (replies from 7E8)
-
-    int found = 0;
-    bool gotReply = payload.length() >= 4;
-    if (gotReply) {
-        int count = strtol(payload.substring(2, 4).c_str(), NULL, 16);
-        for (int i = 4; i + 4 <= (int)payload.length() && found < count; i += 4) {
-            uint16_t raw = parseHexBytes(payload, i);
-            if (raw == 0) continue;
-            if (found < MAX_DTCS) dtcCodes[found] = decodeDTC(raw);
-            found++;
-        }
+    logDebug("OBD_DTC", "Scanning Mode 03 (stored) and Mode 07 (pending) trouble codes...");
+    int stored = readDtcList("03", "43", dtcCodes);
+    if (stored >= 0) {
+        dtcTotal = stored;
+        hasDTCWarning = stored > 0;
+        if (stored > 0) logDebug("OBD_ALERT", String(stored) + " stored Diagnostic Trouble Code(s) identified!");
     }
 
-    if (!gotReply) {
-        // Keep the last good list rather than claiming the codes cleared
-        return;
+    int pending = readDtcList("07", "47", pendingCodes);
+    if (pending >= 0) {
+        pendingTotal = pending;
+        if (pending > 0) logDebug("OBD_ALERT", String(pending) + " pending trouble code(s) (not confirmed yet)");
     }
-
-    dtcTotal = found;
-    hasDTCWarning = found > 0;
-    if (found > 0) {
-        logDebug("OBD_ALERT", String(found) + " stored Diagnostic Trouble Code(s) identified! Payload: " + payload);
-    } else {
-        logDebug("OBD_DTC", "No trouble codes found on module.");
-    }
+    if (stored == 0 && pending == 0) logDebug("OBD_DTC", "No trouble codes found on module.");
 }
 
 // ---- ABS module ------------------------------------------------------------
@@ -311,6 +325,8 @@ inline void pollSpeed() {
 // Reads only the values on screen (the current page's cards, or the one full-screen
 // gauge) using each metric's poll function. Defined in display_ui.h with the metric table.
 inline void pollVisibleMetrics();
+// Reads alarm gauges that are off screen and logs alarms (display_ui.h)
+inline void checkAlarms();
 
 // Main polling routine (only called while connected). Only the values being shown
 // are read, so each refresh is a handful of requests instead of all of them.
@@ -319,6 +335,7 @@ inline void updateVehicleData() {
 
     unsigned long start = millis();
     pollVisibleMetrics();
+    checkAlarms();
     if (currentPage == PAGE_ABS && fullScreenMetric < 0) checkAbsDTCs();   // ABS status card
 
     // ABS speeds are blanked off their page so stale ones are never shown when you

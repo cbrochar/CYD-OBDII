@@ -22,31 +22,35 @@ const int PIP_Y        = 204;
 // Pages are filled in order, METRICS_PER_PAGE at a time.
 // To add/reorder a value, edit this table (and TOTAL_PAGES in config.h).
 // Values are stored WITHOUT units; the unit is drawn separately in a smaller font.
-// poll reads that value from the truck; only on-screen metrics are polled.
+// poll reads that value from the truck; only on-screen metrics are polled, except that
+// metrics with alarm limits are also read in the background (checkAlarms).
+// alarmLow / alarmHigh: outside these the card flashes red (NO_ALARM = no limit).
 struct Metric {
     const char* label;
     String*     value;
     const char* unit;
     uint32_t    color;
     void      (*poll)();
+    float       alarmLow;
+    float       alarmHigh;
 };
 
 static const Metric metrics[] = {
     // Page 0
-    {"TRANSFER CASE",  &valTCase,  "",    TFT_ORANGE,  pollTCase},
-    {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN,    pollBoost},
-    {"VEHICLE SPEED",  &valSpeed,  "MPH", TFT_SKYBLUE, pollSpeed},
-    {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA, pollTFT},
+    {"TRANSFER CASE",  &valTCase,  "",    TFT_ORANGE,  pollTCase,  NO_ALARM, NO_ALARM},
+    {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN,    pollBoost,  NO_ALARM, NO_ALARM},
+    {"VEHICLE SPEED",  &valSpeed,  "MPH", TFT_SKYBLUE, pollSpeed,  NO_ALARM, NO_ALARM},
+    {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA, pollTFT,    NO_ALARM, ALARM_TFT_HIGH_F},
     // Page 1
-    {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN,   pollFICM},
-    {"COOLANT TEMP",   &valECT,    "F",   TFT_RED,     pollECT},
-    {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW,  pollVolts},
-    {"ENGINE RPM",     &valRPM,    "",    TFT_WHITE,   pollRPM},
+    {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN,   pollFICM,   ALARM_FICM_LOW_V, NO_ALARM},
+    {"COOLANT TEMP",   &valECT,    "F",   TFT_RED,     pollECT,    NO_ALARM, ALARM_ECT_HIGH_F},
+    {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW,  pollVolts,  ALARM_VOLTS_LOW_V, ALARM_VOLTS_HIGH_V},
+    {"ENGINE RPM",     &valRPM,    "",    TFT_WHITE,   pollRPM,    NO_ALARM, NO_ALARM},
     // Page 2 (ABS) - fronts on top, rear axle bottom-left;
     // the 4th slot is the ABS warning card (drawn by drawAbsStatusCard, not this table)
-    {"LF WHEEL SPD",   &valWheelLF,   "MPH", TFT_SKYBLUE, pollWheelLF},
-    {"RF WHEEL SPD",   &valWheelRF,   "MPH", TFT_SKYBLUE, pollWheelRF},
-    {"REAR AXLE SPD",  &valWheelRear, "MPH", TFT_CYAN,    pollWheelRear},
+    {"LF WHEEL SPD",   &valWheelLF,   "MPH", TFT_SKYBLUE, pollWheelLF,   NO_ALARM, NO_ALARM},
+    {"RF WHEEL SPD",   &valWheelRF,   "MPH", TFT_SKYBLUE, pollWheelRF,   NO_ALARM, NO_ALARM},
+    {"REAR AXLE SPD",  &valWheelRear, "MPH", TFT_CYAN,    pollWheelRear, NO_ALARM, NO_ALARM},
 };
 static const int METRIC_COUNT = sizeof(metrics) / sizeof(metrics[0]);
 static_assert(METRIC_COUNT <= METRIC_PAGES * METRICS_PER_PAGE,
@@ -56,15 +60,69 @@ static_assert(METRIC_COUNT <= PAGE_ABS * METRICS_PER_PAGE + 3,
 static_assert(PAGE_DTC == METRIC_PAGES && TOTAL_PAGES == METRIC_PAGES + 1,
               "The DTC page must come right after the metric pages");
 
+inline bool metricVisible(int idx) {
+    if (fullScreenMetric >= 0) return idx == fullScreenMetric;
+    return currentPage < METRIC_PAGES && idx / METRICS_PER_PAGE == currentPage;
+}
+
 inline void pollVisibleMetrics() {
-    if (fullScreenMetric >= 0) {
-        metrics[fullScreenMetric].poll();
-        return;
+    for (int idx = 0; idx < METRIC_COUNT; idx++) {
+        if (metricVisible(idx)) metrics[idx].poll();
     }
-    for (int slot = 0; slot < METRICS_PER_PAGE; slot++) {
-        int idx = currentPage * METRICS_PER_PAGE + slot;
-        if (currentPage >= METRIC_PAGES || idx >= METRIC_COUNT) break;
-        metrics[idx].poll();
+}
+
+// ---- Gauge alarms ------------------------------------------------------------------
+// Only live readings can alarm: never demo values, and never "---" (no reply yet).
+inline bool metricHasAlarm(int idx) {
+    return !isnan(metrics[idx].alarmLow) || !isnan(metrics[idx].alarmHigh);
+}
+
+// -1 = below alarmLow, 1 = above alarmHigh, 0 = in range / no live value
+inline int metricAlarmState(int idx) {
+    const Metric& m = metrics[idx];
+    const String& v = *m.value;
+    if (!isConnected || !metricHasAlarm(idx) || v.length() == 0) return 0;
+    if (!isDigit(v[0]) && !(v[0] == '-' && v.length() > 1 && isDigit(v[1]))) return 0;
+    float x = v.toFloat();
+    if (!isnan(m.alarmLow) && x < m.alarmLow) return -1;
+    if (!isnan(m.alarmHigh) && x > m.alarmHigh) return 1;
+    return 0;
+}
+
+inline int firstAlarmMetric() {
+    for (int idx = 0; idx < METRIC_COUNT; idx++) {
+        if (metricAlarmState(idx) != 0) return idx;
+    }
+    return -1;
+}
+
+// true during the "on" half of the alarm flash
+inline bool alarmBlinkOn() { return (millis() / ALARM_BLINK_MS) % 2 == 0; }
+
+// Called from updateVehicleData(): reads the alarm metrics that aren't on screen every
+// ALARM_CHECK_INTERVAL_MS, so an alarm shows in the status bar on any page, and logs
+// each alarm starting and clearing
+inline void checkAlarms() {
+    static unsigned long lastCheck = 0;
+    if (millis() - lastCheck >= ALARM_CHECK_INTERVAL_MS) {
+        lastCheck = millis();
+        for (int idx = 0; idx < METRIC_COUNT; idx++) {
+            if (metricHasAlarm(idx) && !metricVisible(idx)) metrics[idx].poll();
+        }
+    }
+
+    static int lastState[METRIC_COUNT] = {0};
+    for (int idx = 0; idx < METRIC_COUNT; idx++) {
+        int state = metricAlarmState(idx);
+        if (state == lastState[idx]) continue;
+        lastState[idx] = state;
+        const Metric& m = metrics[idx];
+        if (state != 0) {
+            logDebug("ALARM", String(m.label) + (state < 0 ? " LOW: " : " HIGH: ") + *m.value + " " + m.unit +
+                              " (limit " + String(state < 0 ? m.alarmLow : m.alarmHigh, 1) + ")");
+        } else {
+            logDebug("ALARM", String(m.label) + " back in range: " + *m.value + " " + m.unit);
+        }
     }
 }
 
@@ -76,9 +134,19 @@ inline void updateStatusBar(bool force = false) {
     uint16_t bg, fg;
 
     if (isConnected) {
-        if (hasDTCWarning) {
+        int alarm = firstAlarmMetric();
+        if (alarm >= 0) {
+            // e.g. "[!] TRANS TEMP HIGH: 224 F"
+            const Metric& m = metrics[alarm];
+            text = "[!] " + String(m.label) + (metricAlarmState(alarm) < 0 ? " LOW: " : " HIGH: ") +
+                   *m.value + " " + m.unit;
+            bg = TFT_RED;      fg = TFT_WHITE;
+        } else if (hasDTCWarning) {
             text = "[!] STORED ERROR CODES DETECTED";
             bg = TFT_RED;      fg = TFT_WHITE;
+        } else if (pendingTotal > 0) {
+            text = "PENDING ERROR CODES - SEE CODES PAGE";
+            bg = TFT_YELLOW;   fg = TFT_BLACK;
         } else {
             text = "MONITOR ACTIVE - TAP TO SWIPE";
             bg = TFT_DARKGREY; fg = TFT_BLACK;
@@ -108,14 +176,24 @@ inline void updateStatusBar(bool force = false) {
 // ---- Cards / pages -------------------------------------------------------------
 // Label (font 2) on top, big value (font 4, x2) below, small unit beside the value.
 // If value + unit would not fit the card, the value drops to x1 automatically.
+// A card in alarm has a red frame and flashes solid red.
 inline void drawCardToCanvas(int x, int y, const char* label, const String& value,
-                             const char* unit, uint32_t color) {
+                             const char* unit, uint32_t color, bool alarm = false) {
     const int PAD = 10;
+    uint32_t bg = TFT_BLACK;
+    if (alarm) {
+        color = TFT_RED;
+        if (alarmBlinkOn()) {
+            bg = TFT_RED;
+            canvas.fillRect(x, y, CARD_W, CARD_H, TFT_RED);
+        }
+    }
+    uint32_t valueColor = (bg == TFT_RED) ? TFT_WHITE : color;
     canvas.drawRect(x, y, CARD_W, CARD_H, color);
     canvas.drawRect(x + 1, y + 1, CARD_W - 2, CARD_H - 2, color);
 
     // Label
-    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    canvas.setTextColor(TFT_WHITE, bg);
     canvas.setTextSize(1);
     canvas.drawString(label, x + PAD, y + 8, 2);
 
@@ -139,12 +217,12 @@ inline void drawCardToCanvas(int x, int y, const char* label, const String& valu
     int areaH   = CARD_H - 28 - 6;
     int valY    = areaTop + (areaH - valH) / 2;
 
-    canvas.setTextColor(color, TFT_BLACK);
+    canvas.setTextColor(valueColor, bg);
     canvas.drawString(value, x + PAD, valY, 4);
 
     if (unit[0]) {
         canvas.setTextSize(1);
-        canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+        canvas.setTextColor(TFT_WHITE, bg);
         canvas.drawString(unit, x + PAD + valW + 6, valY + valH - 20, 2);
     }
 }
@@ -179,33 +257,48 @@ inline void drawAbsStatusCard(int x, int y) {
     }
 }
 
-// DTC list page: one framed panel, header with count, codes in 3 columns x 5 rows.
-// Red frame when codes are stored, green when clear.
+// DTC list page: one framed panel, header with counts, codes in 3 columns x 5 rows:
+// stored codes (Mode 03) in red, then pending codes (Mode 07) in yellow.
+// Red frame when codes are stored, yellow when only pending, green when clear.
 inline void drawDtcPageToCanvas() {
     const int X = 4, Y = 4, W = 312, H = 188;
     const int COL_W = 100, ROW_H = 29, LIST_Y = Y + 38;
 
-    uint32_t color = (dtcTotal > 0) ? TFT_RED : (dtcTotal == 0 ? TFT_GREEN : TFT_DARKGREY);
+    int stored  = max(dtcTotal, 0);
+    int pending = max(pendingTotal, 0);
+    uint32_t color = stored > 0 ? TFT_RED : pending > 0 ? TFT_YELLOW
+                   : (dtcTotal == 0 ? TFT_GREEN : TFT_DARKGREY);
     canvas.drawRect(X, Y, W, H, color);
     canvas.drawRect(X + 1, Y + 1, W - 2, H - 2, color);
 
     canvas.setTextSize(1);
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
-    canvas.drawString("STORED ERROR CODES", X + 10, Y + 8, 2);
-    if (dtcTotal >= 0) canvas.drawRightString(String(dtcTotal) + " FOUND", X + W - 10, Y + 8, 2);
+    canvas.drawString("ERROR CODES", X + 10, Y + 8, 2);
+    if (dtcTotal >= 0) {
+        // "2 STORED  1 PENDING", each count in its list colour
+        String pendingText = String(pending) + " PENDING";
+        canvas.setTextColor(TFT_YELLOW, TFT_BLACK);
+        canvas.drawRightString(pendingText, X + W - 10, Y + 8, 2);
+        canvas.setTextColor(stored > 0 ? TFT_RED : TFT_WHITE, TFT_BLACK);
+        canvas.drawRightString(String(stored) + " STORED  ", X + W - 10 - canvas.textWidth(pendingText, 2), Y + 8, 2);
+    }
     canvas.drawFastHLine(X + 10, Y + 28, W - 20, TFT_DARKGREY);
 
-    if (dtcTotal <= 0) {
+    if (stored == 0 && pending == 0) {
         canvas.setTextColor(color, TFT_BLACK);
-        canvas.drawCentreString(dtcTotal == 0 ? "NO STORED CODES" : "SCANNING...",
+        canvas.drawCentreString(dtcTotal == 0 ? "NO ERROR CODES" : "SCANNING...",
                                 X + W / 2, Y + 90, 4);
         return;
     }
 
+    int slot = 0;
     canvas.setTextColor(TFT_RED, TFT_BLACK);
-    int shown = min(dtcTotal, MAX_DTCS);
-    for (int i = 0; i < shown; i++) {
-        canvas.drawString(dtcCodes[i], X + 10 + (i % 3) * COL_W, LIST_Y + (i / 3) * ROW_H, 4);
+    for (int i = 0; i < min(stored, MAX_DTCS) && slot < MAX_DTCS; i++, slot++) {
+        canvas.drawString(dtcCodes[i], X + 10 + (slot % 3) * COL_W, LIST_Y + (slot / 3) * ROW_H, 4);
+    }
+    canvas.setTextColor(TFT_YELLOW, TFT_BLACK);
+    for (int i = 0; i < min(pending, MAX_DTCS) && slot < MAX_DTCS; i++, slot++) {
+        canvas.drawString(pendingCodes[i], X + 10 + (slot % 3) * COL_W, LIST_Y + (slot / 3) * ROW_H, 4);
     }
 }
 
@@ -221,7 +314,7 @@ inline void buildPage(int pageNum) {
             if (idx >= METRIC_COUNT) break;
             drawCardToCanvas(COL_X[slot % 2], ROW_Y[slot / 2],
                              metrics[idx].label, *metrics[idx].value,
-                             metrics[idx].unit, metrics[idx].color);
+                             metrics[idx].unit, metrics[idx].color, metricAlarmState(idx) != 0);
         }
         if (pageNum == PAGE_ABS) drawAbsStatusCard(COL_X[1], ROW_Y[1]);
     }
@@ -237,12 +330,17 @@ inline void buildPage(int pageNum) {
 // One metric filling the canvas: label on top, value as large as fits, unit below.
 inline void buildFullScreen(int idx) {
     const Metric& m = metrics[idx];
-    canvas.fillSprite(TFT_BLACK);
-    canvas.drawRect(4, 4, 312, CANVAS_H - 8, m.color);
-    canvas.drawRect(5, 5, 310, CANVAS_H - 10, m.color);
+    // In alarm: red frame, and the whole screen flashes red
+    bool alarm = metricAlarmState(idx) != 0;
+    uint32_t frame = alarm ? TFT_RED : m.color;
+    uint32_t bg = (alarm && alarmBlinkOn()) ? TFT_RED : TFT_BLACK;
+    uint32_t valueColor = (bg == TFT_RED) ? TFT_WHITE : frame;
+    canvas.fillSprite(bg);
+    canvas.drawRect(4, 4, 312, CANVAS_H - 8, frame);
+    canvas.drawRect(5, 5, 310, CANVAS_H - 10, frame);
 
     canvas.setTextSize(1);
-    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    canvas.setTextColor(TFT_WHITE, bg);
     canvas.drawCentreString(m.label, 160, 14, 4);
 
     // Largest font-4 scale (4 down to 1) that fits the width
@@ -250,15 +348,15 @@ inline void buildFullScreen(int idx) {
     canvas.setTextSize(size);
     while (size > 1 && canvas.textWidth(*m.value, 4) > 292) canvas.setTextSize(--size);
     int valH = canvas.fontHeight(4);
-    canvas.setTextColor(m.color, TFT_BLACK);
+    canvas.setTextColor(valueColor, bg);
     canvas.drawCentreString(*m.value, 160, 46 + (116 - valH) / 2, 4);
 
     canvas.setTextSize(1);
     if (m.unit[0]) {
-        canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+        canvas.setTextColor(TFT_WHITE, bg);
         canvas.drawCentreString(m.unit, 160, 160, 4);
     }
-    canvas.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    canvas.setTextColor(bg == TFT_RED ? TFT_WHITE : TFT_DARKGREY, bg);
     canvas.drawCentreString("TAP TO RETURN", 160, CANVAS_H - 24, 2);
 }
 

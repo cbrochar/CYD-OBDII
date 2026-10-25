@@ -31,8 +31,21 @@ const int TOTAL_PAGES      = 4;   // metric pages + the DTC list page
 const int PAGE_ABS         = 2;   // ABS wheel speeds (only polled while this page is shown)
 const int PAGE_DTC         = 3;   // stored trouble code list
 
-// Stored trouble codes kept for the DTC page (3 columns x 5 rows)
+// Stored trouble codes kept for the DTC page (3 columns x 5 rows); pending codes too
 const int MAX_DTCS = 15;
+
+// Gauge alarms: outside these limits a gauge flashes red and the status bar shows it on
+// every page. Gauges with a limit are also read in the background (every
+// ALARM_CHECK_INTERVAL_MS) while they're off screen. Which gauge uses which limit is set
+// in the metric table in display_ui.h; NO_ALARM there means no limit.
+#define NO_ALARM NAN
+const float ALARM_FICM_LOW_V      = 45.0;    // FICM main power below this (nominal ~48 V)
+const float ALARM_TFT_HIGH_F      = 220;     // transmission fluid above this
+const float ALARM_ECT_HIGH_F      = 230;     // coolant above this
+const float ALARM_VOLTS_LOW_V     = 11.8;    // system voltage below this (not charging)
+const float ALARM_VOLTS_HIGH_V    = 15.0;    // system voltage above this (overcharging)
+const unsigned long ALARM_CHECK_INTERVAL_MS = 2000;
+const unsigned long ALARM_BLINK_MS          = 500;
 
 // Live data refresh: the visible page is re-read this often (a refresh takes roughly
 // 100 ms per value, so in practice the page updates as fast as the truck answers)
@@ -42,6 +55,26 @@ const unsigned long DTC_SCAN_INTERVAL_MS = 10000;
 
 // How long the background task waits between Bluetooth connection attempts
 const unsigned long BT_RETRY_INTERVAL_MS = 10000;
+
+// Auto brightness (brightness.h): the light sensor sets the backlight between
+// BRIGHTNESS_MIN_PCT (reading at LDR_DARK_RAW or darker) and 100% (at LDR_BRIGHT_RAW).
+// To recalibrate, set LIGHT_LOG_INTERVAL_MS and read the LIGHT lines in the serial log.
+#define LDR_PIN       34
+const bool AUTO_BRIGHTNESS                = true;    // false = always full brightness
+const int  BRIGHTNESS_MIN_PCT             = 10;
+const int  LDR_DARK_RAW                   = 2000;    // the CYD sensor reads HIGHER in the dark: ~2600 fully dark, 100-350 shaded
+const int  LDR_BRIGHT_RAW                 = 0;       // and 0 in normal room light or brighter
+const unsigned long LIGHT_SMOOTHING_MS    = 3000;
+const unsigned long LIGHT_LOG_INTERVAL_MS = 0;       // e.g. 500 to log readings for calibration
+
+// Battery protection (power.h): with no activity (the PCM answering, or a tap) the
+// backlight goes off, then the board deep-sleeps. It wakes on a tap, or every
+// WAKE_CHECK_INTERVAL_MS to try the adapter for WAKE_CHECK_MS with the screen off, and
+// stays awake if the truck answers. 0 turns that step off.
+const unsigned long SCREEN_OFF_AFTER_MS    = 2UL * 60 * 1000;
+const unsigned long SLEEP_AFTER_MS         = 5UL * 60 * 1000;
+const unsigned long WAKE_CHECK_INTERVAL_MS = 5UL * 60 * 1000;
+const unsigned long WAKE_CHECK_MS          = 30UL * 1000;
 
 // REPLACE THESE 6 HEX VALUES with your adapter's exact physical MAC address bytes!
 const uint8_t ELM_MAC[6] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xBA};
@@ -81,6 +114,8 @@ extern String valWheelRear;        // single rear-axle (differential) speed sens
 extern bool hasDTCWarning;
 extern String dtcCodes[MAX_DTCS];   // decoded codes, e.g. "P0470"
 extern int dtcTotal;                // codes reported by the ECU (-1 = not read yet)
+extern String pendingCodes[MAX_DTCS];   // pending codes (Mode 07): detected once, not yet confirmed
+extern int pendingTotal;            // -1 = not read yet
 extern int absDtcTotal;             // codes reported by the ABS module (-1 = not read yet)
 
 // Fill all metrics with demo values (used while Bluetooth is offline)
