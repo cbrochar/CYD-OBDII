@@ -19,10 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-The 3D-printable case files in hardware/case/ are not covered by this license.
-They are a remix of designs by DanielBrunod and ncmreynolds and are licensed
-under Creative Commons Attribution-ShareAlike (CC BY-SA). See
-hardware/case/README.md.
