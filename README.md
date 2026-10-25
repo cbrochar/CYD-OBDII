@@ -7,6 +7,18 @@ plus a list of stored trouble codes.
 
 Without an adapter it runs on demo values, so you can test the screens on the bench.
 
+| Page 1: gauges | Page 3: ABS |
+|---|---|
+| ![Page 1 with transfer case, turbo boost, speed and trans temp](docs/images/page1-gauges.jpg) | ![ABS page with wheel speeds and ABS warning card](docs/images/page3-abs.jpg) |
+| **Full-screen gauge** | **Page 4: stored error codes** |
+| ![Turbo boost shown full screen](docs/images/fullscreen-turbo-boost.jpg) | ![Stored error codes page listing P0470 and P2291](docs/images/page4-error-codes.jpg) |
+
+*The photos show demo mode (adapter not connected), so all the values are sample data.*
+
+> **Help wanted:** some values still need the right Ford PIDs. See the
+> [open issues](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) if you know your way
+> around 6.0L / Super Duty modules.
+
 ---
 
 ## Features
@@ -185,9 +197,27 @@ See [`tools/README.md`](tools/README.md) for the options and how to add Ford-spe
       power pin is live all the time, so a plugged-in adapter, and the CYD if it's powered
       from an always-on source, keep drawing current while the truck is parked.
 
+## Contributing
+
+Ideas, bug reports and pull requests are welcome.
+
+- **Know a Ford PID or module address?** The open [`help wanted`](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+  issues list what's still unknown (transfer case, ABS wheel speeds, temperature PIDs). Log
+  output from [`tools/obd_logger.py`](tools/) or FORScan is the most useful thing you can add.
+- **Code feedback:** open an issue or start a thread in Discussions. The ELM327 reply handling in
+  [`src/obd_engine.h`](src/obd_engine.h) and the drawing code in
+  [`src/display_ui.h`](src/display_ui.h) are good places to start.
+- Please only add **read-only** requests (see Safety below).
+
 ## Safety
 
 This project only **reads** data (services `01`, `03`, `22`, `18`). Don't add requests that
 command modules (services `2E`, `2F`, `31`, `10`), since those can actuate hardware or change
 settings. Mount the display where it doesn't block your view, and don't operate it while
 driving.
+
+## License
+
+The code is released under the [MIT License](LICENSE). The 3D-printable case in
+[`hardware/case/`](hardware/case/) is a remix of designs by DanielBrunod and ncmreynolds and stays
+under **CC BY-SA**. See [hardware/case/README.md](hardware/case/README.md).
