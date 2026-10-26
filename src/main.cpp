@@ -1,14 +1,17 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include "config.h"
+#include "esp_bt.h"
 #include "obd_engine.h"
 #include "display_ui.h"
 #include "power.h"
+#include "wifi_portal.h"
 
 void setup() {
     Serial.begin(115200);
     delay(500);
     logDebug("SYS_INIT", "Powering up ESP32 core subsystems...");
+    settingsLoad();   // before anything uses brightness, alarm or power settings
     powerBegin();
 
     tft.init();
@@ -25,13 +28,24 @@ void setup() {
     touch.setRotation(1);
     logDebug("TOUCH_INIT", "XPT2046 Driver successfully initialized.");
 
-    canvas.setColorDepth(8);   // 8-bit sprite: 320x214 = ~67 KB instead of ~137 KB
-    if (canvas.createSprite(320, CANVAS_H) == nullptr) {
+    canvas.setColorDepth(8);   // 8-bit sprite: 320 x 107 (two strips) = ~34 KB
+    if (canvas.createSprite(320, CANVAS_STRIP_H) == nullptr) {   // CANVAS_STRIPS in config.h
         logDebug("GFX_FATAL", "Canvas sprite allocation failed (out of RAM)!");
     }
 
     // Start in demo mode: default values on screen, touch + paging fully usable
     loadDemoValues();
+
+    logDebug("SYS_MEM", "Free heap before Bluetooth: " + String(ESP.getFreeHeap() / 1024) + " KB");
+    // The core starts Bluetooth in dual mode (Classic + BLE). Only Classic is used, so hand
+    // the BLE controller's memory back to the heap and start the controller Classic-only;
+    // the phone hotspot needs that memory. SerialBT.begin() then uses this controller.
+    esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
+    esp_bt_controller_config_t btCfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    btCfg.mode = ESP_BT_MODE_CLASSIC_BT;
+    if (esp_bt_controller_init(&btCfg) != ESP_OK || esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT) != ESP_OK) {
+        logDebug("BT_WARN", "Classic-only Bluetooth controller start failed; SerialBT will try the default");
+    }
 
     logDebug("BT_CON", "Initializing Bluetooth Classic stack as Master mode...");
     if (!SerialBT.begin("CYD_Diag_Dash", true)) {
@@ -44,6 +58,8 @@ void setup() {
         btAttempting = true;       // so the status bar says "CONNECTING..." from the start
         startBluetoothTask();      // connect attempts + retries happen in the background
     }
+    logDebug("SYS_MEM", "Free heap after Bluetooth: " + String(ESP.getFreeHeap() / 1024) + " KB, largest block " +
+                        String(heap_caps_get_largest_free_block(MALLOC_CAP_8BIT) / 1024) + " KB");
 
     updateStatusBar(true);
     drawCurrentScreen();
@@ -116,4 +132,10 @@ void loop() {
 
     // 6. Auto brightness from the light sensor
     backlightTick();
+
+    // 7. Save Settings page changes to flash
+    settingsTick();
+
+    // 8. Phone hotspot (Settings page, WIFI)
+    wifiTick();
 }

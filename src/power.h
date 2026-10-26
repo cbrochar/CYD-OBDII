@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "config.h"
+#include "settings.h"
 #include "brightness.h"
 #include "esp_sleep.h"
 
@@ -65,6 +66,7 @@ inline void enterDeepSleep(const String& why) {
     logDebug("POWER", why + ", entering deep sleep (wakes on a tap" +
                       (WAKE_CHECK_INTERVAL_MS > 0 ? ", or in " + String(WAKE_CHECK_INTERVAL_MS / 1000) +
                                                     " s to check the truck)" : String(")")));
+    if (settingsDirty) settingsSave();
     Serial.flush();
 
     tft.writecommand(0x10);                       // ILI9341 sleep in: panel draws almost nothing
@@ -88,10 +90,9 @@ inline void powerTick() {
         if (idle > WAKE_CHECK_MS) enterDeepSleep("Timed check: no reply from the truck");
         return;
     }
-    if (SCREEN_OFF_AFTER_MS > 0 && !screenIsOff && idle > SCREEN_OFF_AFTER_MS) setScreenOn(false);
-    if (SLEEP_AFTER_MS > 0 && idle > SLEEP_AFTER_MS) {
-        enterDeepSleep("No activity for " + String(SLEEP_AFTER_MS / 1000) + " s");
-    }
+    unsigned long screenOffMs = settings.screenOffMin * 60000UL, sleepMs = settings.sleepMin * 60000UL;
+    if (screenOffMs > 0 && !screenIsOff && idle > screenOffMs) setScreenOn(false);
+    if (sleepMs > 0 && idle > sleepMs) enterDeepSleep("No activity for " + String(settings.sleepMin) + " min");
 }
 
 #endif

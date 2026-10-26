@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 #include "config.h"
+#include "dtc_descriptions.h"
+#include "settings.h"
 
 // ---- Layout --------------------------------------------------------------
 // Screen (rotation 1) is 320x240.
@@ -24,15 +26,16 @@ const int PIP_Y        = 204;
 // Values are stored WITHOUT units; the unit is drawn separately in a smaller font.
 // poll reads that value from the truck; only on-screen metrics are polled, except that
 // metrics with alarm limits are also read in the background (checkAlarms).
-// alarmLow / alarmHigh: outside these the card flashes red (NO_ALARM = no limit).
+// alarmLow / alarmHigh: outside these the card flashes red (NO_ALARM = no limit). They
+// point at the limits in settings (Settings page), or at any float constant.
 struct Metric {
     const char* label;
     String*     value;
     const char* unit;
     uint32_t    color;
     void      (*poll)();
-    float       alarmLow;
-    float       alarmHigh;
+    const float* alarmLow;
+    const float* alarmHigh;
 };
 
 static const Metric metrics[] = {
@@ -40,11 +43,11 @@ static const Metric metrics[] = {
     {"TRANSFER CASE",  &valTCase,  "",    TFT_ORANGE,  pollTCase,  NO_ALARM, NO_ALARM},
     {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN,    pollBoost,  NO_ALARM, NO_ALARM},
     {"VEHICLE SPEED",  &valSpeed,  "MPH", TFT_SKYBLUE, pollSpeed,  NO_ALARM, NO_ALARM},
-    {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA, pollTFT,    NO_ALARM, ALARM_TFT_HIGH_F},
+    {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA, pollTFT,    NO_ALARM, &settings.tftHighF},
     // Page 1
-    {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN,   pollFICM,   ALARM_FICM_LOW_V, NO_ALARM},
-    {"COOLANT TEMP",   &valECT,    "F",   TFT_RED,     pollECT,    NO_ALARM, ALARM_ECT_HIGH_F},
-    {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW,  pollVolts,  ALARM_VOLTS_LOW_V, ALARM_VOLTS_HIGH_V},
+    {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN,   pollFICM,   &settings.ficmLowV, NO_ALARM},
+    {"COOLANT TEMP",   &valECT,    "F",   TFT_RED,     pollECT,    NO_ALARM, &settings.ectHighF},
+    {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW,  pollVolts,  &settings.voltsLowV, &settings.voltsHighV},
     {"ENGINE RPM",     &valRPM,    "",    TFT_WHITE,   pollRPM,    NO_ALARM, NO_ALARM},
     // Page 2 (ABS) - fronts on top, rear axle bottom-left;
     // the 4th slot is the ABS warning card (drawn by drawAbsStatusCard, not this table)
@@ -57,8 +60,8 @@ static_assert(METRIC_COUNT <= METRIC_PAGES * METRICS_PER_PAGE,
               "Metric table has more entries than METRIC_PAGES * METRICS_PER_PAGE");
 static_assert(METRIC_COUNT <= PAGE_ABS * METRICS_PER_PAGE + 3,
               "The ABS page's 4th slot is reserved for the ABS status card");
-static_assert(PAGE_DTC == METRIC_PAGES && TOTAL_PAGES == METRIC_PAGES + 1,
-              "The DTC page must come right after the metric pages");
+static_assert(PAGE_DTC == METRIC_PAGES && PAGE_SETTINGS == PAGE_DTC + 1 && TOTAL_PAGES == METRIC_PAGES + 2,
+              "Page order: metric pages, DTC page, settings page");
 
 inline bool metricVisible(int idx) {
     if (fullScreenMetric >= 0) return idx == fullScreenMetric;
@@ -73,20 +76,42 @@ inline void pollVisibleMetrics() {
 
 // ---- Gauge alarms ------------------------------------------------------------------
 // Only live readings can alarm: never demo values, and never "---" (no reply yet).
+// Alarms can be switched off on the Settings page.
 inline bool metricHasAlarm(int idx) {
-    return !isnan(metrics[idx].alarmLow) || !isnan(metrics[idx].alarmHigh);
+    return settings.alarmsOn && (metrics[idx].alarmLow || metrics[idx].alarmHigh);
+}
+
+inline bool isNumber(const String& v) {
+    return v.length() > 0 && (isDigit(v[0]) || (v[0] == '-' && v.length() > 1 && isDigit(v[1])));
 }
 
 // -1 = below alarmLow, 1 = above alarmHigh, 0 = in range / no live value
 inline int metricAlarmState(int idx) {
     const Metric& m = metrics[idx];
     const String& v = *m.value;
-    if (!isConnected || !metricHasAlarm(idx) || v.length() == 0) return 0;
-    if (!isDigit(v[0]) && !(v[0] == '-' && v.length() > 1 && isDigit(v[1]))) return 0;
+    if (!isConnected || !metricHasAlarm(idx) || !isNumber(v)) return 0;
     float x = v.toFloat();
-    if (!isnan(m.alarmLow) && x < m.alarmLow) return -1;
-    if (!isnan(m.alarmHigh) && x > m.alarmHigh) return 1;
+    if (m.alarmLow && x < *m.alarmLow) return -1;
+    if (m.alarmHigh && x > *m.alarmHigh) return 1;
     return 0;
+}
+
+// Value and unit as shown: temperatures are stored in F and speeds in MPH, and converted
+// here if the Settings page says C or KM/H
+inline String shownValue(int idx) {
+    const Metric& m = metrics[idx];
+    const String& v = *m.value;
+    if (!isNumber(v)) return v;
+    if (settings.celsius && strcmp(m.unit, "F") == 0) return String((v.toFloat() - 32) * 5 / 9, 0);
+    if (settings.kmh && strcmp(m.unit, "MPH") == 0)   return String(v.toFloat() * 1.609344, 0);
+    return v;
+}
+
+inline const char* shownUnit(int idx) {
+    const char* u = metrics[idx].unit;
+    if (settings.celsius && strcmp(u, "F") == 0) return "C";
+    if (settings.kmh && strcmp(u, "MPH") == 0)   return "KM/H";
+    return u;
 }
 
 inline int firstAlarmMetric() {
@@ -119,7 +144,7 @@ inline void checkAlarms() {
         const Metric& m = metrics[idx];
         if (state != 0) {
             logDebug("ALARM", String(m.label) + (state < 0 ? " LOW: " : " HIGH: ") + *m.value + " " + m.unit +
-                              " (limit " + String(state < 0 ? m.alarmLow : m.alarmHigh, 1) + ")");
+                              " (limit " + String(state < 0 ? *m.alarmLow : *m.alarmHigh, 1) + ")");
         } else {
             logDebug("ALARM", String(m.label) + " back in range: " + *m.value + " " + m.unit);
         }
@@ -139,7 +164,7 @@ inline void updateStatusBar(bool force = false) {
             // e.g. "[!] TRANS TEMP HIGH: 224 F"
             const Metric& m = metrics[alarm];
             text = "[!] " + String(m.label) + (metricAlarmState(alarm) < 0 ? " LOW: " : " HIGH: ") +
-                   *m.value + " " + m.unit;
+                   shownValue(alarm) + " " + shownUnit(alarm);
             bg = TFT_RED;      fg = TFT_WHITE;
         } else if (hasDTCWarning) {
             text = "[!] STORED ERROR CODES DETECTED";
@@ -260,9 +285,85 @@ inline void drawAbsStatusCard(int x, int y) {
 // DTC list page: one framed panel, header with counts, codes in 3 columns x 5 rows:
 // stored codes (Mode 03) in red, then pending codes (Mode 07) in yellow.
 // Red frame when codes are stored, yellow when only pending, green when clear.
+// Tapping a code opens a box with its description (dtcDetail).
+const int DTC_X = 4, DTC_Y = 4, DTC_W = 312, DTC_H = 188;
+const int DTC_COL_W = 100, DTC_ROW_H = 29, DTC_LIST_Y = DTC_Y + 38;
+
+static int dtcDetail = -1;   // list slot whose description box is open (-1 = none)
+
+// Codes in list order: stored first, then pending (at most MAX_DTCS shown)
+inline int dtcShownCount() {
+    return min(min(max(dtcTotal, 0), MAX_DTCS) + min(max(pendingTotal, 0), MAX_DTCS), MAX_DTCS);
+}
+
+inline String dtcAtSlot(int slot, bool& pending) {
+    int stored = min(max(dtcTotal, 0), MAX_DTCS);
+    pending = slot >= stored;
+    return pending ? pendingCodes[slot - stored] : dtcCodes[slot];
+}
+
+// List slot under a canvas point, or -1
+inline int dtcSlotAtPoint(int cx, int cy) {
+    if (cy < DTC_LIST_Y - 4 || cx < DTC_X + 6) return -1;
+    int col = (cx - DTC_X - 6) / DTC_COL_W, row = (cy - DTC_LIST_Y + 4) / DTC_ROW_H;
+    if (col > 2 || row > 4) return -1;
+    int slot = row * 3 + col;
+    return slot < dtcShownCount() ? slot : -1;
+}
+
+// Draws text word-wrapped to width w; returns the y below the last line
+inline int drawWrapped(const String& text, int x, int y, int w, int font, int lineH) {
+    String line = "";
+    int start = 0;
+    while (start <= (int)text.length()) {
+        int sp = text.indexOf(' ', start);
+        if (sp < 0) sp = text.length();
+        String word = text.substring(start, sp);
+        String trial = line.length() ? line + " " + word : word;
+        if (line.length() && canvas.textWidth(trial, font) > w) {
+            canvas.drawString(line, x, y, font);
+            y += lineH;
+            line = word;
+        } else {
+            line = trial;
+        }
+        start = sp + 1;
+    }
+    if (line.length()) { canvas.drawString(line, x, y, font); y += lineH; }
+    return y;
+}
+
+// Description box over the codes page for the tapped code
+inline void drawDtcDetail() {
+    bool pending;
+    String code = dtcAtSlot(dtcDetail, pending);
+    uint32_t color = pending ? TFT_YELLOW : TFT_RED;
+    const int BX = 14, BY = 14, BW = 292, BH = 170;
+    canvas.fillRoundRect(BX, BY, BW, BH, 8, TFT_BLACK);
+    canvas.drawRoundRect(BX, BY, BW, BH, 8, color);
+    canvas.drawRoundRect(BX + 1, BY + 1, BW - 2, BH - 2, 7, color);
+
+    canvas.setTextSize(1);
+    canvas.setTextColor(color, TFT_BLACK);
+    canvas.drawString(code, BX + 12, BY + 10, 4);
+    canvas.drawRightString(pending ? "PENDING" : "STORED", BX + BW - 12, BY + 14, 2);
+
+    String text = describeDTC(code);
+    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    int y = drawWrapped(text.length() ? text : String("No description stored for this code."),
+                        BX + 12, BY + 42, BW - 24, 2, 18);
+    canvas.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+    y = drawWrapped(dtcKind(code), BX + 12, y + 4, BW - 24, 2, 18);
+    if (pending) drawWrapped("Pending: seen once, not confirmed yet (no check-engine light).",
+                             BX + 12, y + 4, BW - 24, 2, 18);
+
+    canvas.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    canvas.drawCentreString("TAP TO CLOSE", BX + BW / 2, BY + BH - 20, 2);
+}
+
 inline void drawDtcPageToCanvas() {
-    const int X = 4, Y = 4, W = 312, H = 188;
-    const int COL_W = 100, ROW_H = 29, LIST_Y = Y + 38;
+    const int X = DTC_X, Y = DTC_Y, W = DTC_W, H = DTC_H;
+    const int COL_W = DTC_COL_W, ROW_H = DTC_ROW_H, LIST_Y = DTC_LIST_Y;
 
     int stored  = max(dtcTotal, 0);
     int pending = max(pendingTotal, 0);
@@ -300,6 +401,151 @@ inline void drawDtcPageToCanvas() {
     for (int i = 0; i < min(pending, MAX_DTCS) && slot < MAX_DTCS; i++, slot++) {
         canvas.drawString(pendingCodes[i], X + 10 + (slot % 3) * COL_W, LIST_Y + (slot / 3) * ROW_H, 4);
     }
+    if (slot <= 12) {   // room below the list for a hint
+        canvas.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        canvas.drawCentreString("TAP A CODE FOR ITS MEANING", X + W / 2, Y + H - 18, 2);
+    }
+}
+
+const int SNIFF_FOOTER_Y = 178;   // footer button row (same layout as the CAN repo's sniffer page)
+const int SNIFF_BTN_Y    = SNIFF_FOOTER_Y + 4, SNIFF_BTN_H = 30, SNIFF_BTN_W = 100;
+const int SNIFF_BTN_X[3] = {4, 110, 216};
+
+inline void drawSnifferButton(int i, const String& label, uint32_t color, bool filled) {
+    int x = SNIFF_BTN_X[i];
+    if (filled) canvas.fillRoundRect(x, SNIFF_BTN_Y, SNIFF_BTN_W, SNIFF_BTN_H, 6, color);
+    else        canvas.drawRoundRect(x, SNIFF_BTN_Y, SNIFF_BTN_W, SNIFF_BTN_H, 6, color);
+    canvas.setTextColor(filled ? TFT_WHITE : color, filled ? color : TFT_BLACK);
+    canvas.drawCentreString(label, x + SNIFF_BTN_W / 2, SNIFF_BTN_Y + 7, 2);
+}
+
+// ---- Settings page ---------------------------------------------------------------------
+// Sections of rows (MORE moves to the next section). A row is a label and either one
+// button that toggles (ON/OFF, F/C),  -  value  +  buttons, or (change == nullptr) just
+// information. Footer: MORE, DEFAULTS
+// (tap twice within 3 s), NEXT >. Changes are saved to flash by settingsTick().
+struct SettingRow {
+    const char* label;
+    String (*text)();            // the value as shown
+    void   (*change)(int dir);   // -1 / +1 from the - / + buttons, 0 for a toggle tap
+    bool   toggle;
+};
+
+inline String fmtTemp(float f) {
+    return settings.celsius ? String((f - 32) * 5 / 9, 0) + " C" : String(f, 0) + " F";
+}
+inline String fmtMinutes(int m) { return m == 0 ? String("never") : String(m) + " min"; }
+
+// Moves v to the next / previous entry of a list of choices
+inline int stepChoice(int v, const int* list, int n, int dir) {
+    int i = 0;
+    while (i < n - 1 && list[i] < v) i++;
+    return list[constrain(i + dir, 0, n - 1)];
+}
+inline float stepValue(float v, float step, float lo, float hi, int dir) {
+    v = roundf((v + dir * step) / step) * step;
+    return constrain(v, lo, hi);
+}
+
+static const int SCREEN_OFF_CHOICES[] = {0, 1, 2, 5, 10, 30};
+static const int SLEEP_CHOICES[]      = {0, 5, 10, 15, 30, 60};
+
+static const SettingRow SETTINGS_DISPLAY[] = {
+    {"Auto brightness",  []() -> String { return String(settings.autoBrightness ? "ON" : "OFF"); },
+                         [](int) { settings.autoBrightness = !settings.autoBrightness; }, true},
+    {"Night brightness", []() -> String { return String(settings.nightBrightnessPct) + "%"; },
+                         [](int d) { settings.nightBrightnessPct = constrain(settings.nightBrightnessPct + 5 * d, 5, 100); }, false},
+    {"Temperature",      []() -> String { return String(settings.celsius ? "C" : "F"); },
+                         [](int) { settings.celsius = !settings.celsius; }, true},
+    {"Speed",            []() -> String { return String(settings.kmh ? "KM/H" : "MPH"); },
+                         [](int) { settings.kmh = !settings.kmh; }, true},
+};
+static const SettingRow SETTINGS_ALARMS[] = {
+    {"Gauge alarms",     []() -> String { return String(settings.alarmsOn ? "ON" : "OFF"); },
+                         [](int) { settings.alarmsOn = !settings.alarmsOn; }, true},
+    {"FICM low",         []() -> String { return String(settings.ficmLowV, 1) + " V"; },
+                         [](int d) { settings.ficmLowV = stepValue(settings.ficmLowV, 0.5, 40, 50, d); }, false},
+    {"Trans temp high",  []() -> String { return fmtTemp(settings.tftHighF); },
+                         [](int d) { settings.tftHighF = stepValue(settings.tftHighF, 5, 180, 260, d); }, false},
+    {"Coolant high",     []() -> String { return fmtTemp(settings.ectHighF); },
+                         [](int d) { settings.ectHighF = stepValue(settings.ectHighF, 5, 200, 260, d); }, false},
+};
+static const SettingRow SETTINGS_VOLTAGE[] = {
+    {"Volts low",        []() -> String { return String(settings.voltsLowV, 1) + " V"; },
+                         [](int d) { settings.voltsLowV = stepValue(settings.voltsLowV, 0.1, 10.5, 13.0, d); }, false},
+    {"Volts high",       []() -> String { return String(settings.voltsHighV, 1) + " V"; },
+                         [](int d) { settings.voltsHighV = stepValue(settings.voltsHighV, 0.1, 14.0, 16.0, d); }, false},
+};
+static const SettingRow SETTINGS_POWER[] = {
+    {"Screen off after", []() -> String { return fmtMinutes(settings.screenOffMin); },
+                         [](int d) { settings.screenOffMin = stepChoice(settings.screenOffMin, SCREEN_OFF_CHOICES, 6, d); }, false},
+    {"Sleep after",      []() -> String { return fmtMinutes(settings.sleepMin); },
+                         [](int d) { settings.sleepMin = stepChoice(settings.sleepMin, SLEEP_CHOICES, 6, d); }, false},
+};
+
+static const SettingRow SETTINGS_WIFI[] = {
+    {"Phone hotspot",    []() -> String { return String(!settings.wifiOn ? "OFF" : wifiStartFailed ? "FAILED" : "ON"); },
+                         [](int) { settings.wifiOn = !settings.wifiOn; }, true},
+    {"Network",          []() -> String { return String(WIFI_AP_SSID); }, nullptr, false},
+    {"Password",         []() -> String { return String(WIFI_AP_PASSWORD); }, nullptr, false},
+    {"Then open",        []() -> String { return String("192.168.4.1"); }, nullptr, false},
+};
+
+struct SettingSection { const char* title; const SettingRow* rows; int count; };
+static const SettingSection SETTING_SECTIONS[] = {
+    {"DISPLAY", SETTINGS_DISPLAY, sizeof(SETTINGS_DISPLAY) / sizeof(SettingRow)},
+    {"ALARMS",  SETTINGS_ALARMS,  sizeof(SETTINGS_ALARMS) / sizeof(SettingRow)},
+    {"VOLTAGE", SETTINGS_VOLTAGE, sizeof(SETTINGS_VOLTAGE) / sizeof(SettingRow)},
+    {"POWER",   SETTINGS_POWER,   sizeof(SETTINGS_POWER) / sizeof(SettingRow)},
+    {"WIFI",    SETTINGS_WIFI,    sizeof(SETTINGS_WIFI) / sizeof(SettingRow)},
+};
+static const int SETTING_SECTION_COUNT = sizeof(SETTING_SECTIONS) / sizeof(SettingSection);
+
+static int settingsSection = 0;
+static unsigned long defaultsArmedAt = 0;   // first DEFAULTS tap; a second within 3 s resets
+
+const int SET_ROW_Y0 = 28, SET_ROW_H = 30;   // at most 4 rows a section, tall enough for a fingertip
+const int SET_MINUS_X = 182, SET_VALUE_X = 218, SET_PLUS_X = 282, SET_BTN_W = 34, SET_TOGGLE_W = 98;
+
+inline void drawSettingsPageToCanvas() {
+    const SettingSection& sec = SETTING_SECTIONS[settingsSection];
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_ORANGE, TFT_BLACK);
+    canvas.drawString("SETTINGS", 6, 4, 2);
+    canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    canvas.drawRightString(String(sec.title) + "  " + String(settingsSection + 1) + "/" + String(SETTING_SECTION_COUNT),
+                           314, 4, 2);
+    canvas.drawFastHLine(4, 22, 312, TFT_DARKGREY);
+
+    for (int r = 0; r < sec.count; r++) {
+        const SettingRow& row = sec.rows[r];
+        int y = SET_ROW_Y0 + r * SET_ROW_H;
+        canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+        canvas.drawString(row.label, 6, y + 7, 2);
+        String value = row.text();
+        if (!row.change) {   // information only
+            canvas.setTextColor(TFT_YELLOW, TFT_BLACK);
+            canvas.drawRightString(value, 314, y + 7, 2);
+        } else if (row.toggle) {
+            uint32_t c = (value == "OFF") ? TFT_DARKGREY : (value == "FAILED") ? TFT_RED : TFT_GREEN;
+            canvas.drawRoundRect(SET_VALUE_X, y + 2, SET_TOGGLE_W, SET_ROW_H - 4, 5, c);
+            canvas.setTextColor(c, TFT_BLACK);
+            canvas.drawCentreString(value, SET_VALUE_X + SET_TOGGLE_W / 2, y + 7, 2);
+        } else {
+            canvas.drawRoundRect(SET_MINUS_X, y + 2, SET_BTN_W, SET_ROW_H - 4, 5, TFT_CYAN);
+            canvas.drawRoundRect(SET_PLUS_X, y + 2, SET_BTN_W, SET_ROW_H - 4, 5, TFT_CYAN);
+            canvas.setTextColor(TFT_CYAN, TFT_BLACK);
+            canvas.drawCentreString("-", SET_MINUS_X + SET_BTN_W / 2, y + 7, 2);
+            canvas.drawCentreString("+", SET_PLUS_X + SET_BTN_W / 2, y + 7, 2);
+            canvas.setTextColor(TFT_YELLOW, TFT_BLACK);
+            canvas.drawCentreString(value, (SET_MINUS_X + SET_BTN_W + SET_PLUS_X) / 2, y + 7, 2);
+        }
+    }
+
+    drawSnifferButton(0, "MORE", TFT_WHITE, false);
+    bool armed = defaultsArmedAt && millis() - defaultsArmedAt < 3000;
+    drawSnifferButton(1, armed ? "SURE?" : "DEFAULTS", armed ? TFT_RED : TFT_ORANGE, armed);
+    drawSnifferButton(2, "NEXT >", TFT_WHITE, false);
 }
 
 // Builds one page (2x2 card grid or the DTC list, + page dots). Works the same connected or not.
@@ -308,17 +554,20 @@ inline void buildPage(int pageNum) {
 
     if (pageNum == PAGE_DTC) {
         drawDtcPageToCanvas();
+    } else if (pageNum == PAGE_SETTINGS) {
+        drawSettingsPageToCanvas();
     } else {
         for (int slot = 0; slot < METRICS_PER_PAGE; slot++) {
             int idx = pageNum * METRICS_PER_PAGE + slot;
             if (idx >= METRIC_COUNT) break;
             drawCardToCanvas(COL_X[slot % 2], ROW_Y[slot / 2],
-                             metrics[idx].label, *metrics[idx].value,
-                             metrics[idx].unit, metrics[idx].color, metricAlarmState(idx) != 0);
+                             metrics[idx].label, shownValue(idx),
+                             shownUnit(idx), metrics[idx].color, metricAlarmState(idx) != 0);
         }
         if (pageNum == PAGE_ABS) drawAbsStatusCard(COL_X[1], ROW_Y[1]);
     }
 
+    if (pageNum == PAGE_SETTINGS) return;   // its footer holds buttons instead of page dots
     int pipStart = 160 - ((TOTAL_PAGES - 1) * 10);
     for (int i = 0; i < TOTAL_PAGES; i++) {
         uint32_t pipColor = (i == pageNum) ? TFT_WHITE : TFT_DARKGREY;
@@ -346,15 +595,16 @@ inline void buildFullScreen(int idx) {
     // Largest font-4 scale (4 down to 1) that fits the width
     int size = 4;
     canvas.setTextSize(size);
-    while (size > 1 && canvas.textWidth(*m.value, 4) > 292) canvas.setTextSize(--size);
+    String value = shownValue(idx);
+    while (size > 1 && canvas.textWidth(value, 4) > 292) canvas.setTextSize(--size);
     int valH = canvas.fontHeight(4);
     canvas.setTextColor(valueColor, bg);
-    canvas.drawCentreString(*m.value, 160, 46 + (116 - valH) / 2, 4);
+    canvas.drawCentreString(value, 160, 46 + (116 - valH) / 2, 4);
 
     canvas.setTextSize(1);
     if (m.unit[0]) {
         canvas.setTextColor(TFT_WHITE, bg);
-        canvas.drawCentreString(m.unit, 160, 160, 4);
+        canvas.drawCentreString(shownUnit(idx), 160, 160, 4);
     }
     canvas.setTextColor(bg == TFT_RED ? TFT_WHITE : TFT_DARKGREY, bg);
     canvas.drawCentreString("TAP TO RETURN", 160, CANVAS_H - 24, 2);
@@ -390,15 +640,36 @@ inline void drawTapMenu(int idx) {
     drawMenuButton(MENU_FULL_X, "FULL", "SCREEN", metrics[idx].color);
 }
 
+// The canvas holds CANVAS_STRIP_H rows. draw() runs once per strip with the drawing
+// shifted up by the strip's position (a viewport with a negative origin clips the rest),
+// and each strip is pushed below the one before. With one strip this is a plain push.
+const int CANVAS_STRIP_H = CANVAS_H / CANVAS_STRIPS;
+
+template <typename Draw>
+inline void pushCanvas(int x, Draw draw) {
+    for (int s = 0; s < CANVAS_STRIPS; s++) {
+        int y0 = s * CANVAS_STRIP_H;
+        // The viewport must end at the strip's bottom edge: fillSprite() clears _yHeight
+        // rows with memset when the origin is 0, so a taller viewport would overrun the buffer
+        if (CANVAS_STRIPS > 1) canvas.setViewport(0, -y0, 320, y0 + CANVAS_STRIP_H);
+        draw();
+        if (CANVAS_STRIPS > 1) canvas.resetViewport();
+        canvas.pushSprite(x, CANVAS_Y + y0);
+    }
+}
+
 // Draws whatever should be on screen now (full-screen gauge, or page + tap menu)
 inline void drawCurrentScreen() {
-    if (fullScreenMetric >= 0) {
-        buildFullScreen(fullScreenMetric);
-    } else {
-        buildPage(currentPage);
-        if (menuMetric >= 0) drawTapMenu(menuMetric);
-    }
-    canvas.pushSprite(0, CANVAS_Y);
+    if (dtcDetail >= dtcShownCount()) dtcDetail = -1;   // the list changed under it
+    pushCanvas(0, [] {
+        if (fullScreenMetric >= 0) {
+            buildFullScreen(fullScreenMetric);
+        } else {
+            buildPage(currentPage);
+            if (menuMetric >= 0) drawTapMenu(menuMetric);
+            if (currentPage == PAGE_DTC && dtcDetail >= 0) drawDtcDetail();
+        }
+    });
 }
 
 // Animates horizontal page swiping transitions (works offline too)
@@ -407,15 +678,13 @@ inline void scrollToNextPage() {
     logDebug("UI_NAV", "Triggering scroll: Swiping from Page " + String(currentPage) + " to Page " + String(nextPage));
 
     for (int offset = 0; offset <= 320; offset += 32) {
-        buildPage(currentPage);
-        canvas.pushSprite(offset, CANVAS_Y);
-
-        buildPage(nextPage);
-        canvas.pushSprite(offset - 320, CANVAS_Y);
+        pushCanvas(offset, [&] { buildPage(currentPage); });
+        pushCanvas(offset - 320, [&] { buildPage(nextPage); });
         delay(5);
     }
 
     currentPage = nextPage;
+    dtcDetail = -1;
 }
 
 // Which metric card is under a canvas point on the current page (-1 = none:
@@ -427,13 +696,50 @@ inline int metricAtPoint(int cx, int cy) {
     return (idx < METRIC_COUNT) ? idx : -1;
 }
 
+// Taps on the Settings page (see drawSettingsPageToCanvas)
+inline void settingsTap(int cx, int cy) {
+    const SettingSection& sec = SETTING_SECTIONS[settingsSection];
+    if (cy >= SNIFF_FOOTER_Y) {
+        if (cx < SNIFF_BTN_X[1]) {
+            settingsSection = (settingsSection + 1) % SETTING_SECTION_COUNT;
+        } else if (cx < SNIFF_BTN_X[2]) {
+            if (defaultsArmedAt && millis() - defaultsArmedAt < 3000) {
+                settingsDefaults();
+                settingsChanged();
+                defaultsArmedAt = 0;
+                logDebug("SETTINGS", "Back to defaults");
+            } else {
+                defaultsArmedAt = millis();   // tap again to confirm
+            }
+        } else {
+            scrollToNextPage();
+        }
+        return;
+    }
+    int r = (cy - SET_ROW_Y0) / SET_ROW_H;
+    if (cy < SET_ROW_Y0 || r >= sec.count) return;
+    const SettingRow& row = sec.rows[r];
+    if (!row.change) return;   // information row
+    int dir;
+    if (row.toggle)                         dir = 0;
+    else if (cx < SET_VALUE_X + 10)         dir = -1;   // the - button, with some slack
+    else if (cx >= SET_PLUS_X - 10)         dir = 1;
+    else return;
+    if (cx < SET_MINUS_X - 20) return;      // taps on the label do nothing
+    row.change(dir);
+    settingsChanged();
+    logDebug("SETTINGS", String(row.label) + " -> " + row.text());
+}
+
 // Handles one tap at screen coordinates (sx, sy).
 //   Full screen     -> back to the page
 //   Menu showing    -> NEXT PAGE / FULL SCREEN, or tap elsewhere to close it
 //   Tap on a gauge  -> show the menu for that gauge
-//   Tap elsewhere   -> next page (DTC page, ABS status card)
+//   Codes page      -> tap a code for its description, tap again to close it
+//   Tap elsewhere   -> next page (DTC page outside the codes, ABS status card)
 inline void handleTap(int sx, int sy) {
     int cx = sx, cy = max(0, sy - CANVAS_Y);
+    int dtcSlot = -1;
 
     if (fullScreenMetric >= 0) {
         logDebug("UI_NAV", "Leaving full screen");
@@ -447,6 +753,14 @@ inline void handleTap(int sx, int sy) {
             logDebug("UI_NAV", "Full screen: " + String(metrics[idx].label));
             fullScreenMetric = idx;
         }
+    } else if (currentPage == PAGE_SETTINGS) {
+        settingsTap(cx, cy);
+    } else if (dtcDetail >= 0) {
+        dtcDetail = -1;   // close the description box
+    } else if (currentPage == PAGE_DTC && (dtcSlot = dtcSlotAtPoint(cx, cy)) >= 0) {
+        dtcDetail = dtcSlot;
+        bool pending;
+        logDebug("UI_NAV", "Code details: " + dtcAtSlot(dtcSlot, pending));
     } else {
         int idx = metricAtPoint(cx, cy);
         if (idx < 0) {

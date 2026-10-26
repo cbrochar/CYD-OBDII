@@ -11,7 +11,9 @@ What it does
   6. Repeats the core PIDs with headers/spaces OFF, which is how an Arduino sketch
      normally sees the data, and tests whether you can isolate a single module.
   7. Optionally reads Ford-specific PIDs you list in CUSTOM_PIDS below.
-  8. Writes everything, plus a full raw transcript, to one .txt file.
+  8. With --kline: probes the K-line (OBD pin 7, ISO 9141 / KWP2000) for modules that
+     aren't on CAN, such as the ABS and 4WD modules, and lists which addresses answer.
+  9. Writes everything, plus a full raw transcript, to one .txt file.
 
 Only read requests are sent. Add only read requests to CUSTOM_PIDS.
 
@@ -23,6 +25,8 @@ Options:
     --port COM5       skip the port prompt
     --baud 38400      skip baud auto-detect
     --samples 10      how many times to sample the core PIDs
+    --kline           also probe the K-line (pin 7) for modules; adds several minutes
+    --kline-addrs 28,40,60   only probe these K-line addresses (hex) instead of 01-7F
 """
 
 import argparse
@@ -39,7 +43,7 @@ except ImportError:  # checked again in main()
     serial = None
     list_ports = None
 
-SCRIPT_VERSION = "1.0"
+SCRIPT_VERSION = "1.1"
 BAUDS = [38400, 115200, 9600, 57600, 230400, 500000]
 CORE_PIDS = [0x0C, 0x0D, 0x05, 0x04, 0x0B, 0x0F, 0x10]
 PROTOCOL_FALLBACK_ORDER = [1, 2, 6, 3, 4, 5, 7, 8, 9]
@@ -414,6 +418,75 @@ def run(elm, baud, port, args, out, warn):
     return {"proto": proto, "modules": modules, "supported": supported, "all_pids": all_pids}
 
 
+# ---------------------------------------------------------------------------
+# K-line probe (--kline)
+# ---------------------------------------------------------------------------
+# On the 2005 Excursion the PCM is on CAN, but Ford's workshop manual (section 418-00, as
+# quoted on a forum) puts the ABS and 4WD control modules on ISO 9141 (OBD pin 7). A
+# K-line module only answers a 5-baud "slow init" sent to its own address, so this tries
+# every address and records which ones complete the handshake and their key bytes. The
+# init is only a handshake; for each address that answers it then sends read-only
+# requests (OBD service 03 and KWP service 18, read trouble codes). Nothing is changed.
+
+def kline_probe(elm, args, out, warn):
+    out.append("")
+    out.append("=" * 70)
+    out.append("K-LINE PROBE (OBD pin 7: ISO 9141-2 / ISO 14230 KWP, 5-baud init)")
+    out.append("=" * 70)
+    if args.kline_addrs:
+        addrs = [int(a, 16) for a in args.kline_addrs.split(",") if a.strip()]
+    else:
+        addrs = list(range(0x01, 0x80))
+    out.append("Addresses tried: " + " ".join(f"{a:02X}" for a in addrs))
+    elm.cmd("ATZ", timeout=4.0)
+    for c in ["ATE0", "ATL0", "ATS1", "ATH1", "ATAT1"]:
+        elm.cmd(c)
+
+    found = []
+    for proto in (3, 4):
+        elm.cmd(f"ATSP{proto}")
+        out.append(f"\n-- Protocol {proto}: {PROTOCOL_NAMES[proto]} --")
+        print(f"K-line probe, protocol {proto}: trying {len(addrs)} addresses (about 3 s each) ...")
+        si_works = True
+        for a in addrs:
+            elm.cmd(f"ATIIA{a:02X}")          # 5-baud init address
+            if si_works:
+                lines, ms = elm.cmd("ATSI", timeout=8.0)   # slow init now
+                text = " ".join(lines).upper()
+                if text.strip() == "?":            # older / clone adapter without ATSI
+                    si_works = False
+                    warn.append("Adapter doesn't support ATSI; using a request to trigger each init instead.")
+            if not si_works:
+                lines, ms = elm.cmd("03", timeout=8.0)
+                text = " ".join(lines).upper()
+            ok = "ERROR" not in text and "UNABLE" not in text and text.strip() not in ("", "?", "NO DATA")
+            if not ok:
+                print(f"  {a:02X}: no answer", end="\r", flush=True)
+                continue
+            kw, _ = elm.cmd("ATKW")
+            out.append(f"Address {a:02X}: ANSWERED init ({' | '.join(lines)})  key bytes: {' | '.join(kw)}  ({ms:.0f} ms)")
+            print(f"  {a:02X}: ANSWERED, key bytes {' '.join(kw)}            ")
+            found.append((proto, a))
+            # Read-only requests: the reply (or a 7F negative reply) shows how the module talks
+            for hdr in (f"C1{a:02X}F1", f"81{a:02X}F1", f"68{a:02X}F1"):
+                elm.cmd(f"ATSH{hdr}")
+                for req in ("03", "1800FF00"):
+                    r, rms = elm.cmd(req, timeout=6.0)
+                    out.append(f"    ATSH{hdr} {req} -> {' | '.join(r)}  ({rms:.0f} ms)")
+        print()
+        if found and any(p == proto for p, _ in found):
+            break   # protocol 3 found modules: no need to repeat the scan with protocol 4
+
+    if found:
+        out.append("\nK-line modules found: " + ", ".join(f"{a:02X} (protocol {p})" for p, a in found))
+    else:
+        out.append("\nNo K-line module answered a 5-baud init. Either nothing is on pin 7, the modules")
+        out.append("need a fast init (protocol 5), or the adapter can't do K-line (some clones).")
+        warn.append("K-line probe: no module answered.")
+    elm.cmd("ATZ", timeout=4.0)
+    return found
+
+
 def write_report(path, header_lines, summary_lines, body, warnings, transcript):
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(header_lines + summary_lines + body))
@@ -430,6 +503,8 @@ def main():
     ap.add_argument("--baud", type=int)
     ap.add_argument("--samples", type=int, default=10)
     ap.add_argument("--note", default="", help="e.g. 'key ON, engine idling, warm'")
+    ap.add_argument("--kline", action="store_true", help="also probe the K-line (pin 7) for modules")
+    ap.add_argument("--kline-addrs", help="comma-separated hex addresses to probe, default 01-7F")
     args = ap.parse_args()
 
     if serial is None:
@@ -460,6 +535,10 @@ def main():
     body, warnings, result = [], [], None
     try:
         result = run(elm, baud, port, args, body, warnings)
+        if args.kline:
+            kline_found = kline_probe(elm, args, body, warnings)
+            if result is not None:
+                result["kline"] = kline_found
     except KeyboardInterrupt:
         warnings.append("Run interrupted by user (Ctrl+C). Report is partial.")
     except Exception as e:  # keep the partial log
@@ -476,6 +555,9 @@ def main():
         summary.append(f"Protocol: {p} ({PROTOCOL_NAMES.get(p, 'unknown')})")
         summary.append(f"Modules that answered: {len(result['modules'])}  -> {', '.join(result['modules'])}")
         summary.append(f"Distinct supported PIDs (excluding page markers): {len(result['all_pids'])}")
+        if "kline" in result:
+            k = result["kline"]
+            summary.append("K-line modules: " + (", ".join(f"{a:02X} (protocol {p})" for p, a in k) if k else "none answered"))
     else:
         summary.append("No vehicle data was collected. See warnings and transcript.")
 

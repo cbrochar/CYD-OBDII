@@ -47,8 +47,30 @@ python obd_logger.py --note "engine idling, warm"
 | `--baud 38400` | auto | Baud rate; otherwise it tries 38400, 115200, 9600, 57600, 230400, 500000 |
 | `--samples 10` | 10 | How many times to sample the core PIDs |
 | `--note "..."` | none | Free-text note saved in the log header (engine state, etc.) |
+| `--kline` | off | Also probe the K-line (OBD pin 7) for modules that aren't on CAN (adds several minutes) |
+| `--kline-addrs 28,40` | 01-7F | Only probe these K-line addresses (hex) |
 
 The log is saved as `obd_log_<date>_<time>.txt` in the folder you run the command from.
+
+### K-line probe (`--kline`)
+
+Ford's 2005 Excursion workshop manual puts the **ABS** and **4WD control** modules on the K-line
+(ISO 9141, OBD pin 7) rather than CAN. A K-line module only answers a wake-up (the ISO 9141
+"5-baud init") sent to its own address, so `--kline` tries each address from `01` to `7F` and
+records which ones complete the handshake, with their key bytes. For each address that answers
+it then sends two read-only requests (`03` and `1800FF00`, read trouble codes) with three header
+styles, to show how the module expects to be addressed.
+
+```bash
+python obd_logger.py --kline --note "key ON, engine off"
+```
+
+- It takes about 3 seconds per address, so a full scan takes 6–12 minutes. Use `--kline-addrs`
+  to retry just the addresses that answered.
+- The results are in the **K-LINE PROBE** section of the log and in the summary
+  ("K-line modules: 28 (protocol 3), ..."). Send that section along when asking about PIDs.
+- The wake-up is only a handshake and the requests only read; nothing in the modules is changed.
+- Some cheap ELM327 clones can't do the K-line at all. If nothing answers, the log says so.
 
 ### Reading Ford-specific PIDs
 
