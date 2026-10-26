@@ -22,11 +22,12 @@ void setup() {
     delay(2500); // 2.5 second hold so the display text is readable
     tft.fillScreen(TFT_BLACK);
 
-    // Touch uses the default SPI object (VSPI); the TFT is on HSPI via -D USE_HSPI_PORT
-    SPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
+    // The TFT is on HSPI (-D USE_HSPI_PORT), the SD card on VSPI (the default SPI object),
+    // and touch is bit-banged on its own pins
     touch.begin();
     touch.setRotation(1);
     logDebug("TOUCH_INIT", "XPT2046 Driver successfully initialized.");
+    sdBegin();   // not required: REC tries again, so a card can be inserted later
 
     canvas.setColorDepth(8);   // 8-bit sprite: 320 x 107 (two strips) = ~34 KB
     if (canvas.createSprite(320, CANVAS_STRIP_H) == nullptr) {   // CANVAS_STRIPS in config.h
@@ -138,4 +139,7 @@ void loop() {
 
     // 8. Phone hotspot (Settings page, WIFI)
     wifiTick();
+
+    // 9. Drive log (LOG page): reads off-screen gauges and writes a row every second
+    driveLogTick();
 }

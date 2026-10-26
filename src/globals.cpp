@@ -5,7 +5,7 @@ TFT_eSPI tft = TFT_eSPI();
 TFT_eSprite canvas = TFT_eSprite(&tft);
 BluetoothSerial SerialBT;
 ELM327 myELM;
-XPT2046_Touchscreen touch(XPT2046_CS, XPT2046_IRQ);
+TouchBitbang touch(XPT2046_CLK, XPT2046_MOSI, XPT2046_MISO, XPT2046_CS, XPT2046_IRQ);
 
 // State Flags
 volatile bool isConnected = false;

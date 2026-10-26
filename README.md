@@ -23,14 +23,15 @@ Without an adapter it runs on demo values, so you can test the screens on the be
 
 ## Features
 
-- **5 pages**, tap to move between them (page dots at the bottom show where you are)
+- **6 pages**, tap to move between them (page dots at the bottom show where you are)
   1. Transfer case · Turbo boost · Vehicle speed · Transmission temp
   2. FICM main power · Coolant temp · System volts · Engine RPM
   3. ABS: Left-front wheel speed · Right-front wheel speed · Rear axle speed · ABS status (warning triangle when the ABS module has stored codes)
   4. Engine trouble codes (up to 15, e.g. `P0470`): stored codes in red, then pending codes in
      yellow (detected once but not confirmed yet, so they show up before the check-engine light);
      green when clear. **Tap a code** to see what it means.
-  5. **Settings**: brightness, units, alarm limits, power and WiFi, saved in flash, see
+  5. **Drive log**: REC / MARK / STOP to record the gauges to the SD card, see [Drive log](#drive-log)
+  6. **Settings**: brightness, units, alarm limits, power and WiFi, saved in flash, see
      [Settings page](#settings-page)
 - **Tap menu**: tap any gauge to get **NEXT PAGE** and **FULL SCREEN** buttons.
   Full screen shows that one gauge as large as it fits; tap again to go back.
@@ -57,6 +58,7 @@ Without an adapter it runs on demo values, so you can test the screens on the be
 | Part | Notes |
 |---|---|
 | ESP32-2432S028R ("Cheap Yellow Display") | 2.8" 320×240 ILI9341 screen, XPT2046 resistive touch |
+| microSD card (optional) | For the drive log. FAT32; any size up to 32 GB is simplest |
 | Bluetooth Classic ELM327 OBD-II adapter | Tested with an ELM327 v1.4b clone. Must be **Bluetooth Classic** (SPP), not BLE-only. |
 | 3D-printed case | [Modular CYD case](https://www.thingiverse.com/thing:6991968) by DanielBrunod, remixed from [ncmreynolds' CYD enclosure](https://www.thingiverse.com/thing:6308391) (CC BY-SA). STL files in [`hardware/case/`](hardware/case/) |
 | USB power in the truck | 5 V via the CYD's USB port |
@@ -128,7 +130,8 @@ Turbo boost uses standard PID `0B`, which tops out at 255 kPa, so the gauge maxe
 ### 1. Tools
 - [VS Code](https://code.visualstudio.com/) with the **PlatformIO** (or pioarduino) extension
 - Libraries are installed automatically from `platformio.ini`:
-  `TFT_eSPI 2.5.43`, `ELMDuino 3.4.1`, `XPT2046_Touchscreen`
+  `TFT_eSPI 2.5.43`, `ELMDuino 3.4.1`. Touch has its own small driver
+  ([`src/touch_bitbang.h`](src/touch_bitbang.h)), so the SD card can use the SPI bus
 
 ### 2. Set your adapter's Bluetooth address
 In [`src/config.h`](src/config.h), replace the placeholder MAC with your adapter's address:
@@ -164,6 +167,38 @@ The list in [`src/dtc_descriptions.h`](src/dtc_descriptions.h) covers the codes 
 OBD-II codes and the Ford ABS wheel-speed codes. A code that isn't listed says whether it's a
 generic or a Ford-specific code. To add one, add a row: `{"P0123", "What it means"},`.
 
+## Drive log
+
+The LOG page (after the codes page) records the gauges to the SD card for charting later, e.g.
+trans temp and boost over a long tow:
+
+1. Put a FAT32 microSD card in the CYD (it can go in while it's running).
+2. On the LOG page tap **REC**. It shows the file name (`DRIVE001.CSV`, `DRIVE002.CSV`, ...), the
+   recording time, rows and size.
+3. Tap **MARK** to note a moment (start of a hill, a warning light); it goes into that row.
+4. Tap **STOP**. Leaving the page doesn't stop it; the display going to sleep does.
+5. Get the file from the card on a PC, or from the phone's **Logs** tab
+   ([Phone access](#phone-access-wifi)), and open it in Excel or Google Sheets.
+
+The file has one row per second:
+
+```
+seconds,TURBO BOOST (PSI),VEHICLE SPEED (MPH),TRANS TEMP (F),FICM MAIN PWR (V),COOLANT TEMP (F),SYSTEM VOLTS (V),ENGINE RPM,alarms,mark,codes
+12.0,14.2,58,186,48.1,197,14.1,2150,,,P0470 P2291 pending:P0128
+13.0,14.6,59,187,48.0,197,14.1,2180,,MARK 1,
+```
+
+- Values are always in °F and MPH, whatever the screen shows, so a file never mixes units.
+- `alarms` lists the gauges in alarm; `codes` is filled on the first row and whenever the stored
+  or pending codes change.
+- While recording, all logged gauges are read every second even when they aren't on screen
+  (one at a time, so the touch screen stays responsive).
+- The transfer case and wheel speeds aren't logged yet: they can't be read until the K-line
+  work is done. Set `logged` in their `metrics[]` rows in `src/display_ui.h` once they work.
+- Rows are only written while the truck answers, never demo values.
+- The file is saved to the card every 5 seconds, so unplugging loses at most the last 5 seconds.
+  `DRIVE_LOG_INTERVAL_MS` and `DRIVE_LOG_FLUSH_MS` in `config.h` change the timings.
+
 ## Settings page
 
 The settings page (after the codes page) changes these without editing code. Changes are saved
@@ -198,7 +233,7 @@ The CYD can run its own WiFi hotspot, so a phone can see the dash without any ap
 | Tab | What it does |
 |---|---|
 | **Live** | All gauges, refreshed every second, in the units chosen on the CYD; alarms in red; stored and pending codes with their descriptions |
-| **Logs** | Not used in this version (SD recording is in [CYD-OBDII-CAN](https://github.com/cbrochar/CYD-OBDII-CAN)) |
+| **Logs** | The drive logs on the SD card (`DRIVEnnn.CSV`): download to the phone or delete. The file being recorded is shown but can't be downloaded until you STOP |
 | **Update** | Upload a new firmware `.bin` (from `.pio/build/esp32dev/firmware.bin` after a PlatformIO build). The CYD restarts with it when the upload is checked |
 
 - The phone only sees what the display already reads: no extra requests go to the truck.
@@ -358,6 +393,9 @@ CYD-OBDII/
 │   ├── display_ui.h     Gauge table, alarms, cards, full-screen gauge, tap menu, status bar, pages
 │   ├── brightness.h     Auto brightness: light sensor -> backlight PWM
 │   ├── settings.h       Settings page values, saved in flash (NVS)
+│   ├── drive_log.h      Drive log: gauges to DRIVEnnn.CSV on the SD card
+│   ├── sd_card.h        SD card setup, shared by the loggers
+│   ├── touch_bitbang.h  XPT2046 touch driver (bit-banged, frees the SPI bus for the SD card)
 │   ├── dtc_descriptions.h  What each trouble code means
 │   ├── wifi_portal.h    Phone hotspot: live page, firmware update
 │   └── power.h          Battery protection: screen off, deep sleep, wake on a tap or timed check

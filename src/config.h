@@ -4,16 +4,23 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <TFT_eSPI.h>
-#include <XPT2046_Touchscreen.h>
 #include <BluetoothSerial.h>
 #include "ELMduino.h"
+#include "touch_bitbang.h"
 
 // Hardware Pin Definitions for the Cheap Yellow Display (CYD)
+// Touch (XPT2046) is bit-banged so the SD card can have the second hardware SPI bus
 #define XPT2046_IRQ   36
 #define XPT2046_MOSI  32
 #define XPT2046_MISO  39
 #define XPT2046_CLK   25
 #define XPT2046_CS    33
+
+// MicroSD slot (VSPI). Cards must be FAT32 (32 GB or smaller is simplest).
+#define SD_SCK_PIN    18
+#define SD_MISO_PIN   19
+#define SD_MOSI_PIN   23
+#define SD_CS_PIN     5
 
 // Touch calibration: raw XPT2046 readings at the screen edges (rotation 1).
 // Typical CYD values; if taps land on the wrong card, tap each corner and copy the
@@ -33,10 +40,11 @@ const int CANVAS_STRIPS = 2;
 // Display layout / paging
 const int METRICS_PER_PAGE = 4;   // 2 x 2 grid of cards
 const int METRIC_PAGES     = 3;   // card pages; must match the metric table in display_ui.h (12 metrics)
-const int TOTAL_PAGES      = 5;   // metric pages + the DTC list page + settings
+const int TOTAL_PAGES      = 6;   // metric pages + DTC list + drive log + settings
 const int PAGE_ABS         = 2;   // ABS wheel speeds (only polled while this page is shown)
 const int PAGE_DTC         = 3;   // stored trouble code list
-const int PAGE_SETTINGS    = 4;   // settings (saved in flash)
+const int PAGE_LOG         = 4;   // drive log to the SD card (REC / MARK)
+const int PAGE_SETTINGS    = 5;   // settings (saved in flash)
 
 // Stored trouble codes kept for the DTC page (3 columns x 5 rows); pending codes too
 const int MAX_DTCS = 15;
@@ -87,6 +95,11 @@ const unsigned long WAKE_CHECK_MS          = 30UL * 1000;
 // REPLACE THESE 6 HEX VALUES with your adapter's exact physical MAC address bytes!
 const uint8_t ELM_MAC[6] = {0x01, 0x23, 0x45, 0x67, 0x89, 0xBA};
 
+// Drive log (drive_log.h): with REC on the LOG page, the gauges are written to the SD card
+// this often, and the file is saved to the card this often (a power cut loses at most that)
+const unsigned long DRIVE_LOG_INTERVAL_MS = 1000;
+const unsigned long DRIVE_LOG_FLUSH_MS    = 5000;
+
 // Phone hotspot (wifi_portal.h), switched on from the Settings page. Join this network on a
 // phone and open http://192.168.4.1 for live gauges, codes, SD logs and firmware updates.
 // The password must be at least 8 characters.
@@ -98,7 +111,7 @@ extern TFT_eSPI tft;
 extern TFT_eSprite canvas;
 extern BluetoothSerial SerialBT;
 extern ELM327 myELM;
-extern XPT2046_Touchscreen touch;
+extern TouchBitbang touch;
 
 // Program Tracking States
 // (volatile: written by the Bluetooth task on core 0, read by loop() on core 1)

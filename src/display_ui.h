@@ -36,32 +36,34 @@ struct Metric {
     void      (*poll)();
     const float* alarmLow;
     const float* alarmHigh;
+    bool        logged;      // written by the drive log (false for values that can't be read yet)
 };
 
 static const Metric metrics[] = {
     // Page 0
-    {"TRANSFER CASE",  &valTCase,  "",    TFT_ORANGE,  pollTCase,  NO_ALARM, NO_ALARM},
-    {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN,    pollBoost,  NO_ALARM, NO_ALARM},
-    {"VEHICLE SPEED",  &valSpeed,  "MPH", TFT_SKYBLUE, pollSpeed,  NO_ALARM, NO_ALARM},
-    {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA, pollTFT,    NO_ALARM, &settings.tftHighF},
+    {"TRANSFER CASE",  &valTCase,  "",    TFT_ORANGE,  pollTCase,  NO_ALARM, NO_ALARM, false},
+    {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN,    pollBoost,  NO_ALARM, NO_ALARM, true },
+    {"VEHICLE SPEED",  &valSpeed,  "MPH", TFT_SKYBLUE, pollSpeed,  NO_ALARM, NO_ALARM, true },
+    {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA, pollTFT,    NO_ALARM, &settings.tftHighF, true },
     // Page 1
-    {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN,   pollFICM,   &settings.ficmLowV, NO_ALARM},
-    {"COOLANT TEMP",   &valECT,    "F",   TFT_RED,     pollECT,    NO_ALARM, &settings.ectHighF},
-    {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW,  pollVolts,  &settings.voltsLowV, &settings.voltsHighV},
-    {"ENGINE RPM",     &valRPM,    "",    TFT_WHITE,   pollRPM,    NO_ALARM, NO_ALARM},
+    {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN,   pollFICM,   &settings.ficmLowV, NO_ALARM, true },
+    {"COOLANT TEMP",   &valECT,    "F",   TFT_RED,     pollECT,    NO_ALARM, &settings.ectHighF, true },
+    {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW,  pollVolts,  &settings.voltsLowV, &settings.voltsHighV, true },
+    {"ENGINE RPM",     &valRPM,    "",    TFT_WHITE,   pollRPM,    NO_ALARM, NO_ALARM, true },
     // Page 2 (ABS) - fronts on top, rear axle bottom-left;
     // the 4th slot is the ABS warning card (drawn by drawAbsStatusCard, not this table)
-    {"LF WHEEL SPD",   &valWheelLF,   "MPH", TFT_SKYBLUE, pollWheelLF,   NO_ALARM, NO_ALARM},
-    {"RF WHEEL SPD",   &valWheelRF,   "MPH", TFT_SKYBLUE, pollWheelRF,   NO_ALARM, NO_ALARM},
-    {"REAR AXLE SPD",  &valWheelRear, "MPH", TFT_CYAN,    pollWheelRear, NO_ALARM, NO_ALARM},
+    {"LF WHEEL SPD",   &valWheelLF,   "MPH", TFT_SKYBLUE, pollWheelLF,   NO_ALARM, NO_ALARM, false},
+    {"RF WHEEL SPD",   &valWheelRF,   "MPH", TFT_SKYBLUE, pollWheelRF,   NO_ALARM, NO_ALARM, false},
+    {"REAR AXLE SPD",  &valWheelRear, "MPH", TFT_CYAN,    pollWheelRear, NO_ALARM, NO_ALARM, false},
 };
 static const int METRIC_COUNT = sizeof(metrics) / sizeof(metrics[0]);
 static_assert(METRIC_COUNT <= METRIC_PAGES * METRICS_PER_PAGE,
               "Metric table has more entries than METRIC_PAGES * METRICS_PER_PAGE");
 static_assert(METRIC_COUNT <= PAGE_ABS * METRICS_PER_PAGE + 3,
               "The ABS page's 4th slot is reserved for the ABS status card");
-static_assert(PAGE_DTC == METRIC_PAGES && PAGE_SETTINGS == PAGE_DTC + 1 && TOTAL_PAGES == METRIC_PAGES + 2,
-              "Page order: metric pages, DTC page, settings page");
+static_assert(PAGE_DTC == METRIC_PAGES && PAGE_LOG == PAGE_DTC + 1 && PAGE_SETTINGS == PAGE_LOG + 1 &&
+              TOTAL_PAGES == METRIC_PAGES + 3,
+              "Page order: metric pages, DTC page, LOG page, settings page");
 
 inline bool metricVisible(int idx) {
     if (fullScreenMetric >= 0) return idx == fullScreenMetric;
@@ -150,6 +152,8 @@ inline void checkAlarms() {
         }
     }
 }
+
+#include "drive_log.h"   // needs the metrics table and alarm helpers above
 
 // ---- Status bar --------------------------------------------------------------
 // Drawn directly on the TFT. Only repaints when its text changes.
@@ -548,12 +552,67 @@ inline void drawSettingsPageToCanvas() {
     drawSnifferButton(2, "NEXT >", TFT_WHITE, false);
 }
 
+// ---- LOG page (drive log) -------------------------------------------------------------
+// REC / STOP the drive log, MARK a moment, NEXT page; shows the file, time, rows and size.
+inline String fmtDuration(unsigned long ms) {
+    unsigned long s = ms / 1000;
+    char b[16];
+    snprintf(b, sizeof(b), "%lu:%02lu:%02lu", s / 3600, (s / 60) % 60, s % 60);
+    return String(b);
+}
+
+inline void drawLogPageToCanvas() {
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_ORANGE, TFT_BLACK);
+    canvas.drawString("DRIVE LOG", 6, 4, 2);
+    canvas.setTextColor(driveLogging ? TFT_RED : TFT_DARKGREY, TFT_BLACK);
+    canvas.drawRightString(driveLogging ? "REC" : "STOPPED", 314, 4, 2);
+    canvas.drawFastHLine(4, 22, 312, TFT_DARKGREY);
+
+    if (driveLogging) {
+        canvas.setTextColor(TFT_RED, TFT_BLACK);
+        canvas.drawString(driveLogName, 10, 34, 4);
+        canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+        canvas.drawString("Time    " + fmtDuration(millis() - driveStartMs), 10, 72, 2);
+        canvas.drawString("Rows    " + String(driveRows) + "      Marks  " + String(driveMarks), 10, 94, 2);
+        canvas.drawString("Size    " + String((uint32_t)(driveFile.size() / 1024)) + " KB", 10, 116, 2);
+        if (driveLogPaused()) {
+            canvas.setTextColor(TFT_YELLOW, TFT_BLACK);
+            canvas.drawString("Paused: truck not answering", 10, 146, 2);
+        }
+    } else {
+        canvas.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+        canvas.drawString("REC writes the gauges once a second to a", 10, 32, 2);
+        canvas.drawString("CSV file on the SD card, for a spreadsheet.", 10, 50, 2);
+        canvas.drawString("Only while the truck answers (no demo data).", 10, 68, 2);
+        canvas.drawString("MARK notes a moment, e.g. start of a hill.", 10, 86, 2);
+        if (driveLogError) {
+            canvas.setTextColor(TFT_RED, TFT_BLACK);
+            canvas.drawString("NO SD CARD: insert one and tap REC", 10, 120, 2);
+        } else if (driveLogName.length()) {
+            canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+            canvas.drawString("Last: " + driveLogName + ", " + String(driveRows) + " rows", 10, 120, 2);
+        }
+        canvas.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        canvas.drawString("Get the files from the card, or the phone's Logs tab.", 10, 150, 2);
+    }
+
+    if (driveLogging)       drawSnifferButton(0, "STOP", TFT_RED, true);
+    else if (driveLogError) drawSnifferButton(0, "NO SD", TFT_DARKGREY, false);   // tap to retry
+    else                    drawSnifferButton(0, "REC", TFT_RED, false);
+    drawSnifferButton(1, driveMarks && driveLogging ? "MARK " + String(driveMarks) : String("MARK"),
+                      driveLogging ? TFT_YELLOW : TFT_DARKGREY, false);
+    drawSnifferButton(2, "NEXT >", TFT_WHITE, false);
+}
+
 // Builds one page (2x2 card grid or the DTC list, + page dots). Works the same connected or not.
 inline void buildPage(int pageNum) {
     canvas.fillSprite(TFT_BLACK);
 
     if (pageNum == PAGE_DTC) {
         drawDtcPageToCanvas();
+    } else if (pageNum == PAGE_LOG) {
+        drawLogPageToCanvas();
     } else if (pageNum == PAGE_SETTINGS) {
         drawSettingsPageToCanvas();
     } else {
@@ -567,7 +626,7 @@ inline void buildPage(int pageNum) {
         if (pageNum == PAGE_ABS) drawAbsStatusCard(COL_X[1], ROW_Y[1]);
     }
 
-    if (pageNum == PAGE_SETTINGS) return;   // its footer holds buttons instead of page dots
+    if (pageNum == PAGE_SETTINGS || pageNum == PAGE_LOG) return;   // footer buttons instead of page dots
     int pipStart = 160 - ((TOTAL_PAGES - 1) * 10);
     for (int i = 0; i < TOTAL_PAGES; i++) {
         uint32_t pipColor = (i == pageNum) ? TFT_WHITE : TFT_DARKGREY;
@@ -696,6 +755,14 @@ inline int metricAtPoint(int cx, int cy) {
     return (idx < METRIC_COUNT) ? idx : -1;
 }
 
+// Taps on the LOG page: only the footer buttons do something
+inline void driveLogTap(int cx, int cy) {
+    if (cy < SNIFF_FOOTER_Y) return;
+    if (cx < SNIFF_BTN_X[1])      { if (driveLogging) driveLogStop(); else driveLogStart(); }
+    else if (cx < SNIFF_BTN_X[2]) driveLogMark();
+    else                          scrollToNextPage();
+}
+
 // Taps on the Settings page (see drawSettingsPageToCanvas)
 inline void settingsTap(int cx, int cy) {
     const SettingSection& sec = SETTING_SECTIONS[settingsSection];
@@ -753,6 +820,8 @@ inline void handleTap(int sx, int sy) {
             logDebug("UI_NAV", "Full screen: " + String(metrics[idx].label));
             fullScreenMetric = idx;
         }
+    } else if (currentPage == PAGE_LOG) {
+        driveLogTap(cx, cy);
     } else if (currentPage == PAGE_SETTINGS) {
         settingsTap(cx, cy);
     } else if (dtcDetail >= 0) {

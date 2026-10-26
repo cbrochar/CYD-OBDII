@@ -15,15 +15,14 @@
 // WIFI_AP_SSID / WIFI_AP_PASSWORD. Join it and open http://192.168.4.1 for:
 //   Live    gauges (same units as the screen, alarms in red), stored and pending codes
 //           with their descriptions; refreshes every second
-//   Logs    the SD recordings: download or delete (CAN version, when an SD card is in)
+//   Logs    the SD card's drive logs (and, in the CAN version, CAN recordings): download
+//           or delete
 //   Update  upload a new firmware .bin (from .pio/build/<env>/firmware.bin)
 // It only shows what the display already reads: no extra requests go to the truck.
 // Every page or data request counts as activity, so the display stays awake while in use.
 
-// The SD log pages exist when the CAN logger is part of the build
-#ifdef CAN_LOGGER_H
-#define PORTAL_HAS_LOGS 1
-#endif
+// Both versions have the drive log; the CAN version also has the CAN frame recorder
+// (can_logger.h, which defines CAN_LOGGER_H)
 
 static WebServer webServer(80);
 static bool wifiRunning = false;
@@ -125,7 +124,7 @@ inline void sendPage(const char* body) {
 
 // Same status idea as the screen's status bar, in words
 inline String portalStatus() {
-#ifdef PORTAL_HAS_LOGS
+#ifdef CAN_LOGGER_H
     if (canListenOnly) return "Sniffer page (listen-only): gauges are not being read";
 #endif
     if (!isConnected) return "Truck not answering: showing DEMO values";
@@ -156,17 +155,24 @@ inline void handleLive() {
     webServer.send(200, "application/json", j);
 }
 
-#ifdef PORTAL_HAS_LOGS
-// Only names the logger writes are accepted (CAN0001.LOG / CAN0001.TXT), so a request
-// can't reach any other file
+// Only names the loggers write are accepted (DRIVE001.CSV, CAN0001.LOG / .TXT), so a
+// request can't reach any other file
 inline bool validLogName(const String& n) {
+    if (n.length() == 12 && n.startsWith("DRIVE") && n.endsWith(".CSV")) {
+        for (int i = 5; i < 8; i++) if (!isDigit(n[i])) return false;
+        return true;
+    }
     if (n.length() != 11 || !n.startsWith("CAN")) return false;
     for (int i = 3; i < 7; i++) if (!isDigit(n[i])) return false;
     return n.endsWith(".LOG") || n.endsWith(".TXT");
 }
 
+// The file a logger is writing right now: listed, but not downloadable until STOP
 inline bool isRecordingFile(const String& n) {
-    return logRecording && n.startsWith(logName);
+#ifdef CAN_LOGGER_H
+    if (logRecording && n.startsWith(logName)) return true;
+#endif
+    return driveLogging && n == driveLogName;
 }
 
 inline void handleLogs() {
@@ -175,8 +181,12 @@ inline void handleLogs() {
     if (!sdBegin()) {
         body += "<p class='dim'>No SD card found.</p></main>";
     } else {
-        body += "<p class='dim'>.LOG = all CAN frames (candump format, for SavvyCAN or tools/can_compare.py),"
-                " .TXT = START and MARK times.</p><table>";
+        body += "<p class='dim'>.CSV = drive logs (gauges once a second, for a spreadsheet)"
+#ifdef CAN_LOGGER_H
+                ", .LOG = all CAN frames (candump format, for SavvyCAN or tools/can_compare.py),"
+                " .TXT = START and MARK times"
+#endif
+                ".</p><table>";
         File dir = SD.open("/");
         int n = 0;
         for (File f = dir.openNextFile(); f; f = dir.openNextFile()) {
@@ -196,7 +206,11 @@ inline void handleLogs() {
         }
         dir.close();
         body += "</table>";
-        if (!n) body += "<p class='dim'>No recordings yet. Use REC on the CYD's sniffer page.</p>";
+        if (!n) body += "<p class='dim'>No recordings yet. Use REC on the CYD's LOG page"
+#ifdef CAN_LOGGER_H
+                        " (or the sniffer page for CAN frames)"
+#endif
+                        ".</p>";
         body += "<p class='dim'>" + String((uint32_t)((SD.totalBytes() - SD.usedBytes()) / (1024 * 1024))) +
                 " MB free</p></main>";
     }
@@ -225,12 +239,6 @@ inline void handleDelete() {
     logDebug("WIFI", "Deleted " + name);
     webServer.send(200, "text/plain", "Deleted");
 }
-#else
-inline void handleLogs() {
-    sendPage("<main><h2>Recordings</h2><p class='dim'>SD card recording is only in the CAN version "
-             "(CYD-OBDII-CAN).</p></main>");
-}
-#endif
 
 // Firmware upload: the .bin is written to the spare app partition as it arrives, and
 // the CYD restarts into it once it has been checked
@@ -239,9 +247,10 @@ inline void handleUpdateUpload() {
     noteActivity();
     if (up.status == UPLOAD_FILE_START) {
         logDebug("WIFI", "Firmware upload started: " + up.filename);
-#ifdef PORTAL_HAS_LOGS
+#ifdef CAN_LOGGER_H
         logStop();   // close any SD recording first
 #endif
+        driveLogStop();
         tft.fillRect(0, 0, 320, STATUS_BAR_H, TFT_BLUE);
         tft.setTextColor(TFT_WHITE, TFT_BLUE);
         tft.drawCentreString("UPDATING FIRMWARE - DON'T POWER OFF", 160, 4, 2);
@@ -289,10 +298,8 @@ inline void wifiStart() {
         webServer.on("/", HTTP_GET, [] { sendPage(PORTAL_LIVE); });
         webServer.on("/api/live", HTTP_GET, handleLive);
         webServer.on("/logs", HTTP_GET, handleLogs);
-#ifdef PORTAL_HAS_LOGS
         webServer.on("/download", HTTP_GET, handleDownload);
         webServer.on("/delete", HTTP_POST, handleDelete);
-#endif
         webServer.on("/update", HTTP_GET, [] { sendPage(PORTAL_UPDATE); });
         webServer.on("/update", HTTP_POST, handleUpdateDone, handleUpdateUpload);
         webServer.onNotFound([] { webServer.send(404, "text/plain", "Not found"); });
