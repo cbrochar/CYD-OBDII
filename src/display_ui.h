@@ -586,7 +586,10 @@ inline void drawLogPageToCanvas() {
         canvas.drawString("CSV file on the SD card, for a spreadsheet.", 10, 50, 2);
         canvas.drawString("Only while the truck answers (no demo data).", 10, 68, 2);
         canvas.drawString("MARK notes a moment, e.g. start of a hill.", 10, 86, 2);
-        if (driveLogError) {
+        if (driveLogFull) {
+            canvas.setTextColor(TFT_RED, TFT_BLACK);
+            canvas.drawString("999 LOGS ON THE CARD: delete some", 10, 120, 2);
+        } else if (driveLogError) {
             canvas.setTextColor(TFT_RED, TFT_BLACK);
             canvas.drawString("NO SD CARD: insert one and tap REC", 10, 120, 2);
         } else if (driveLogName.length()) {
@@ -702,7 +705,10 @@ inline void drawTapMenu(int idx) {
 // The canvas holds CANVAS_STRIP_H rows. draw() runs once per strip with the drawing
 // shifted up by the strip's position (a viewport with a negative origin clips the rest),
 // and each strip is pushed below the one before. With one strip this is a plain push.
-const int CANVAS_STRIP_H = CANVAS_H / CANVAS_STRIPS;
+// Rounded up: the last strip's extra rows fall below the bottom of the screen
+const int CANVAS_STRIP_H = (CANVAS_H + CANVAS_STRIPS - 1) / CANVAS_STRIPS;
+static_assert(CANVAS_STRIP_H * CANVAS_STRIPS == CANVAS_H || CANVAS_Y + CANVAS_H == 240,
+              "Extra strip rows must fall off the bottom of the 240-row screen");
 
 template <typename Draw>
 inline void pushCanvas(int x, Draw draw) {

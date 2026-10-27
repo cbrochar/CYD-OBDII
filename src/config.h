@@ -33,9 +33,9 @@ const unsigned long MENU_TIMEOUT_MS = 4000;
 
 // The gauge area is drawn off-screen in CANVAS_STRIPS horizontal strips, each pushed to
 // the screen in turn. Fewer strips draw faster, more strips need less RAM. Here:
-// two half-height strips: Bluetooth Classic leaves too little RAM for the WiFi hotspot
-// with a full-size canvas, and this frees about 34 KB.
-const int CANVAS_STRIPS = 2;
+// four quarter-height strips: Bluetooth Classic leaves too little RAM for the WiFi hotspot
+// and the SD card with a full-size canvas, and this frees about 51 KB.
+const int CANVAS_STRIPS = 4;
 
 // Display layout / paging
 const int METRICS_PER_PAGE = 4;   // 2 x 2 grid of cards

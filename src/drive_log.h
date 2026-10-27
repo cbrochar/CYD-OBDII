@@ -20,6 +20,7 @@
 
 static bool     driveLogging   = false;
 static bool     driveLogError  = false;   // no card, or a write failed
+static bool     driveLogFull   = false;   // DRIVE001-999.CSV all exist
 static File     driveFile;
 static String   driveLogName   = "";      // e.g. "DRIVE003.CSV"
 static uint32_t driveRows      = 0;
@@ -60,7 +61,7 @@ inline void driveLogFail(const String& why) {
 
 inline bool driveLogStart() {
     if (driveLogging) return true;
-    driveLogError = false;
+    driveLogError = driveLogFull = false;
     if (!sdBegin()) { driveLogError = true; return false; }
 
     char name[16];
@@ -69,6 +70,7 @@ inline bool driveLogStart() {
         snprintf(name, sizeof(name), "/DRIVE%03d.CSV", n);
         if (!SD.exists(name)) break;
     }
+    if (n > 999) { driveLogFail("DRIVE001-999.CSV all exist"); driveLogFull = true; return false; }
     driveFile = SD.open(name, FILE_WRITE);
     if (!driveFile) { driveLogFail("Could not create the drive log file"); return false; }
     driveLogName = String(name + 1);

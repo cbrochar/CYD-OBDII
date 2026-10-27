@@ -27,9 +27,10 @@ void setup() {
     touch.begin();
     touch.setRotation(1);
     logDebug("TOUCH_INIT", "XPT2046 Driver successfully initialized.");
-    sdBegin();   // not required: REC tries again, so a card can be inserted later
+    // The SD card isn't mounted here: REC or the phone's Logs tab mounts it when first
+    // needed. Mounting it before Bluetooth and WiFi leaves too little heap for the hotspot.
 
-    canvas.setColorDepth(8);   // 8-bit sprite: 320 x 107 (two strips) = ~34 KB
+    canvas.setColorDepth(8);   // 8-bit sprite: 320 x 54 (four strips) = ~17 KB
     if (canvas.createSprite(320, CANVAS_STRIP_H) == nullptr) {   // CANVAS_STRIPS in config.h
         logDebug("GFX_FATAL", "Canvas sprite allocation failed (out of RAM)!");
     }

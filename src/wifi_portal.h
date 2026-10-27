@@ -220,7 +220,7 @@ inline void handleLogs() {
 inline void handleDownload() {
     noteActivity();
     String name = webServer.arg("f");
-    if (!validLogName(name) || !sdBegin()) { webServer.send(404, "text/plain", "Not found"); return; }
+    if (!validLogName(name) || isRecordingFile(name) || !sdBegin()) { webServer.send(404, "text/plain", "Not found"); return; }
     File f = SD.open("/" + name, FILE_READ);
     if (!f) { webServer.send(404, "text/plain", "Not found"); return; }
     webServer.sendHeader("Content-Disposition", "attachment; filename=" + name);

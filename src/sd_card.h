@@ -15,8 +15,11 @@ inline bool sdBegin() {
     if (sdReady) return true;
     SD.end();
     SPI.begin(SD_SCK_PIN, SD_MISO_PIN, SD_MOSI_PIN, SD_CS_PIN);
-    sdReady = SD.begin(SD_CS_PIN, SPI, 20000000);
+    // 3 open files (the drive log, plus a phone download or log listing) instead of the
+    // default 5: each one reserves a ~4 KB sector buffer
+    sdReady = SD.begin(SD_CS_PIN, SPI, 20000000, "/sd", 3);
     if (sdReady) {
+        logDebug("SD", "Free heap after mounting: " + String(ESP.getFreeHeap() / 1024) + " KB");
         logDebug("SD", "Card found: " + String((uint32_t)(SD.cardSize() / (1024 * 1024))) + " MB, " +
                        String((uint32_t)((SD.totalBytes() - SD.usedBytes()) / (1024 * 1024))) + " MB free");
     } else {
