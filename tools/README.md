@@ -93,3 +93,51 @@ Their replies are logged raw, with headers on.
 
 The log header has the vehicle hard-coded as "2005 Ford Excursion 6.0L diesel". Edit that
 line in `main()` if you use the script on another vehicle.
+
+## sniff_logger.py
+
+Records what's on the bus while **FORScan does the asking**, so you can see the raw request and
+reply behind a reading. It's the laptop version of the CYD's SNIFF page, for when the display's
+Bluetooth adapter can't monitor. See
+[Finding PIDs with FORScan](../README.md#finding-pids-with-forscan) for the whole method.
+
+It **only listens**. It stops before recording unless the adapter accepts every setup command,
+including `ATCSM1` (silent monitoring), so it can't acknowledge frames or disturb the bus.
+
+### Requirements
+
+- Python 3 and `pip install pyserial`
+- A USB adapter that supports `ATMA` and `ATCSM1`. An OBDLink EX works. Many cheap clones don't.
+- A Y-cable on the OBD port, with FORScan on a different adapter
+
+### Usage
+
+```bash
+python sniff_logger.py --port COM3 --mode engine
+```
+
+Close anything else using that port first. Press **Enter** to add a `MARK` line, and **q + Enter**
+to stop.
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--port COM3` | COM3 | Serial port of the listening adapter |
+| `--baud 115200` | 115200 | Baud rate. Set this to suit your adapter: it isn't auto-detected |
+| `--mode engine` | engine | `engine` CAN 7E0–7EF, `diag` CAN 700–7FF, `all` every CAN ID, `kline` ISO 9141 |
+| `--out folder` | current folder | Where to save the capture |
+| `--seconds 30` | until stopped | Stop after this long |
+
+The file is `SNIFnnn.TXT`, in the same format as the CYD's: setup answers, then each line with the
+seconds since the start.
+
+```
+12.410 7E0 03 22 11 39 00 00 00 00
+12.455 7E8 04 62 11 39 5E 00 00 00
+15.002 MARK 1
+```
+
+- Keep to `engine` or `diag` on CAN. `all` overflowed the adapter in under 2 seconds on the
+  test truck. Restarting after `BUFFER FULL` and the MARK key are written but not tested yet.
+- On the K-line, lines may be tagged `<DATA ERROR` and split after 12 bytes. Rebuild the frames
+  and check the sum byte, the low byte of all the bytes before it.
+- **Keep captures private.** They can hold your VIN, so `SNIF*.TXT` is git-ignored.
