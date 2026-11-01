@@ -472,6 +472,7 @@ inline void drawSnifferButton(int i, const String& label, uint32_t color, bool f
     int x = SNIFF_BTN_X[i];
     if (filled) canvas.fillRoundRect(x, SNIFF_BTN_Y, SNIFF_BTN_W, SNIFF_BTN_H, 6, color);
     else        canvas.drawRoundRect(x, SNIFF_BTN_Y, SNIFF_BTN_W, SNIFF_BTN_H, 6, color);
+    canvas.setTextSize(1);   // a card's value can leave it at x2
     canvas.setTextColor(filled ? TFT_WHITE : color, filled ? color : TFT_BLACK);
     canvas.drawCentreString(label, x + SNIFF_BTN_W / 2, SNIFF_BTN_Y + 7, 2);
 }
@@ -986,7 +987,8 @@ inline void navTap(int cx) {
 //   Page buttons    -> < PREV / NEXT > (gauges build)
 //   Tap on a gauge  -> show the menu for that gauge
 //   Codes page      -> tap a code for its description, tap again to close it
-//   Tap elsewhere   -> next page (DTC page outside the codes, ABS status card)
+//   Tap elsewhere   -> next page (DTC page outside the codes, ABS status card); nothing
+//                      in the gauges build
 inline void handleTap(int sx, int sy) {
     int cx = sx, cy = max(0, sy - CANVAS_Y);
     int dtcSlot = -1;
@@ -1023,7 +1025,9 @@ inline void handleTap(int sx, int sy) {
     } else {
         int idx = metricAtPoint(cx, cy);
         if (idx < 0) {
-            scrollToNextPage();
+#ifndef GAUGES_ONLY
+            scrollToNextPage();   // the gauges build changes pages only with its buttons
+#endif
         } else {
             menuMetric = idx;
             menuShownAt = millis();

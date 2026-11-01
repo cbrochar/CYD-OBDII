@@ -30,6 +30,10 @@ static void serviceTouch() {
     }
     if (!down || millis() - lastSeen < TOUCH_RELEASE_MS) return;
     down = false;
+    // A drag can drop contact for a moment and come back as a second tap; ignore any tap
+    // this soon after the last one (same gap as the full build)
+    if (millis() - lastTouchDebounce < 250) return;
+    lastTouchDebounce = millis();
 
     bool wasOff = screenIsOff;
     noteActivity();
