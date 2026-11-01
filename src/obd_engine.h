@@ -377,7 +377,7 @@ inline void updateVehicleData() {
     if (currentPage == PAGE_ABS && fullScreenMetric < 0) checkAbsDTCs();   // ABS status card
 
     // ABS speeds are blanked off their page so stale ones are never shown when you
-    // swipe back; the ABS code count is kept, since a stored fault doesn't go stale.
+    // come back to the page; the ABS code count is kept, since a stored fault doesn't go stale.
     if (currentPage != PAGE_ABS) valWheelLF = valWheelRF = valWheelRear = "---";
 
     // Engine codes: every refresh on the DTC page, otherwise every DTC_SCAN_INTERVAL_MS

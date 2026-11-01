@@ -10,14 +10,20 @@
 // Screen (rotation 1) is 320x240.
 //   y 0..23    : status bar, drawn straight to the TFT (never scrolls)
 //   y 26..239  : 320x214 canvas (8-bit colour to save RAM) holding the
-//                2x2 card grid (y 4..191) and the page dots (y ~204)
+//                2x2 card grid (y 4..191) and the page dots (y ~204).
+//                Gauges build: shorter cards (y 4..175) and < PREV / NEXT > buttons below
 const int STATUS_BAR_H = 24;
 const int CANVAS_Y     = 26;
 const int CANVAS_H     = 214;
 const int CARD_W       = 154;
+#ifdef GAUGES_ONLY
+const int CARD_H       = 84;
+const int ROW_Y[2]     = {4, 92};
+#else
 const int CARD_H       = 92;
-const int COL_X[2]     = {4, 162};
 const int ROW_Y[2]     = {4, 100};
+#endif
+const int COL_X[2]     = {4, 162};
 const int PIP_Y        = 204;
 
 // ---- Metric table ----------------------------------------------------------
@@ -215,7 +221,7 @@ inline void updateStatusBar(bool force = false) {
             bg = TFT_YELLOW;   fg = TFT_BLACK;
         } else {
 #ifdef GAUGES_ONLY
-            text = "MONITOR ACTIVE - SWIPE FOR PAGES";
+            text = "MONITOR ACTIVE";
 #else
             text = "MONITOR ACTIVE - TAP TO SWIPE";
 #endif
@@ -331,8 +337,14 @@ inline void drawAbsStatusCard(int x, int y) {
 // stored codes (Mode 03) in red, then pending codes (Mode 07) in yellow.
 // Red frame when codes are stored, yellow when only pending, green when clear.
 // Tapping a code opens a box with its description (dtcDetail).
+#ifdef GAUGES_ONLY
+// Shorter, with tighter rows, to leave room for the page buttons
+const int DTC_X = 4, DTC_Y = 4, DTC_W = 312, DTC_H = 172;
+const int DTC_COL_W = 100, DTC_ROW_H = 26, DTC_LIST_Y = DTC_Y + 38;
+#else
 const int DTC_X = 4, DTC_Y = 4, DTC_W = 312, DTC_H = 188;
 const int DTC_COL_W = 100, DTC_ROW_H = 29, DTC_LIST_Y = DTC_Y + 38;
+#endif
 
 static int dtcDetail = -1;   // list slot whose description box is open (-1 = none)
 
@@ -463,6 +475,19 @@ inline void drawSnifferButton(int i, const String& label, uint32_t color, bool f
     canvas.setTextColor(filled ? TFT_WHITE : color, filled ? color : TFT_BLACK);
     canvas.drawCentreString(label, x + SNIFF_BTN_W / 2, SNIFF_BTN_Y + 7, 2);
 }
+
+#ifdef GAUGES_ONLY
+// Page buttons under the gauges and the codes (gauges build): < PREV, page dots, NEXT >
+inline void drawNavFooter(int pageNum) {
+    drawSnifferButton(0, "< PREV", TFT_WHITE, false);
+    drawSnifferButton(2, "NEXT >", TFT_WHITE, false);
+    int pipStart = 160 - ((TOTAL_PAGES - 1) * 8);
+    for (int i = 0; i < TOTAL_PAGES; i++) {
+        uint32_t pipColor = (i == pageNum) ? TFT_WHITE : TFT_DARKGREY;
+        canvas.fillCircle(pipStart + (i * 16), SNIFF_BTN_Y + SNIFF_BTN_H / 2, 4, pipColor);
+    }
+}
+#endif
 
 // ---- Settings page ---------------------------------------------------------------------
 // Sections of rows (MORE moves to the next section). A row is a label and either one
@@ -746,15 +771,15 @@ inline void buildPage(int pageNum) {
     }
 
 #ifdef GAUGES_ONLY
-    if (pageNum == PAGE_SETTINGS) return;   // footer buttons instead of page dots
+    if (pageNum != PAGE_SETTINGS) drawNavFooter(pageNum);   // Settings has its own footer
 #else
     if (pageNum == PAGE_SETTINGS || pageNum == PAGE_LOG || pageNum == PAGE_SNIFF) return;   // footer buttons instead of page dots
-#endif
     int pipStart = 160 - ((TOTAL_PAGES - 1) * 10);
     for (int i = 0; i < TOTAL_PAGES; i++) {
         uint32_t pipColor = (i == pageNum) ? TFT_WHITE : TFT_DARKGREY;
         canvas.fillCircle(pipStart + (i * 20), PIP_Y, 4, pipColor);
     }
+#endif
 }
 
 // ---- Full-screen gauge --------------------------------------------------------
@@ -944,9 +969,21 @@ inline void settingsTap(int cx, int cy) {
     logDebug("SETTINGS", String(row.label) + " -> " + row.text());
 }
 
+#ifdef GAUGES_ONLY
+// Taps on the page buttons under the gauges and the codes: < PREV / NEXT >
+inline void navTap(int cx) {
+    if (cx >= SNIFF_BTN_X[1] && cx < SNIFF_BTN_X[2]) return;   // the page dots
+    int dir = (cx < SNIFF_BTN_X[1]) ? -1 : 1;
+    currentPage = (currentPage + dir + TOTAL_PAGES) % TOTAL_PAGES;
+    dtcDetail = -1;
+    logDebug("UI_NAV", String(dir < 0 ? "PREV" : "NEXT") + " to page " + String(currentPage));
+}
+#endif
+
 // Handles one tap at screen coordinates (sx, sy).
 //   Full screen     -> back to the page
 //   Menu showing    -> NEXT PAGE / FULL SCREEN, or tap elsewhere to close it
+//   Page buttons    -> < PREV / NEXT > (gauges build)
 //   Tap on a gauge  -> show the menu for that gauge
 //   Codes page      -> tap a code for its description, tap again to close it
 //   Tap elsewhere   -> next page (DTC page outside the codes, ABS status card)
@@ -966,7 +1003,10 @@ inline void handleTap(int sx, int sy) {
             logDebug("UI_NAV", "Full screen: " + String(metrics[idx].label));
             fullScreenMetric = idx;
         }
-#ifndef GAUGES_ONLY
+#ifdef GAUGES_ONLY
+    } else if (currentPage != PAGE_SETTINGS && dtcDetail < 0 && cy >= SNIFF_FOOTER_Y) {
+        navTap(cx);
+#else
     } else if (currentPage == PAGE_LOG) {
         driveLogTap(cx, cy);
     } else if (currentPage == PAGE_SNIFF) {
@@ -990,17 +1030,6 @@ inline void handleTap(int sx, int sy) {
         }
     }
     lastBusQuery = 0;   // refresh straight away for whatever is now on screen
-    drawCurrentScreen();
-}
-
-// A swipe: dir 1 = next page, -1 = previous page. Also closes a full-screen gauge or menu.
-inline void swipePage(int dir) {
-    logDebug("UI_NAV", "Swipe to page " + String((currentPage + dir + TOTAL_PAGES) % TOTAL_PAGES));
-    fullScreenMetric = -1;
-    menuMetric = -1;
-    dtcDetail = -1;
-    currentPage = (currentPage + dir + TOTAL_PAGES) % TOTAL_PAGES;
-    lastBusQuery = 0;
     drawCurrentScreen();
 }
 

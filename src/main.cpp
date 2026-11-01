@@ -10,19 +10,21 @@
 #endif
 
 #ifdef GAUGES_ONLY
-// Follows the finger and acts when it lifts: a sideways move is a swipe (left = next page,
-// right = previous), anything else is a tap where the finger came down. Called from loop()
-// and while waiting for the adapter (elmWaitHook), so a slow truck reply can't hold it up.
+// Acts when the finger lifts: a tap where the finger came down (pages change with the
+// < PREV / NEXT > buttons). Called from loop() and while waiting for the adapter
+// (elmWaitHook), so a slow truck reply can't hold it up.
 static void serviceTouch() {
     static bool down = false;
-    static int startX = 0, startY = 0, lastX = 0, lastY = 0;
+    static int startX = 0, startY = 0;
     static unsigned long lastSeen = 0;
 
     if (touch.touched()) {
-        TS_Point pt = touch.getPoint();
-        lastX = constrain(map(pt.x, TOUCH_RAW_X_MIN, TOUCH_RAW_X_MAX, 0, 319), 0, 319);
-        lastY = constrain(map(pt.y, TOUCH_RAW_Y_MIN, TOUCH_RAW_Y_MAX, 0, 239), 0, 239);
-        if (!down) { down = true; startX = lastX; startY = lastY; }
+        if (!down) {
+            TS_Point pt = touch.getPoint();
+            startX = constrain(map(pt.x, TOUCH_RAW_X_MIN, TOUCH_RAW_X_MAX, 0, 319), 0, 319);
+            startY = constrain(map(pt.y, TOUCH_RAW_Y_MIN, TOUCH_RAW_Y_MAX, 0, 239), 0, 239);
+            down = true;
+        }
         lastSeen = millis();
         return;
     }
@@ -33,9 +35,7 @@ static void serviceTouch() {
     noteActivity();
     if (wasOff) return;   // this touch only wakes the screen
 
-    int dx = lastX - startX, dy = lastY - startY;
-    if (abs(dx) >= SWIPE_MIN_PX && abs(dx) > abs(dy)) swipePage(dx < 0 ? 1 : -1);
-    else handleTap(startX, startY);
+    handleTap(startX, startY);
 }
 #endif
 
@@ -125,7 +125,7 @@ void loop() {
     }
 
 #ifdef GAUGES_ONLY
-    // 2. Touch: swipes and taps
+    // 2. Touch: taps, including the page buttons
     serviceTouch();
 #else
     // 2. Touch: one action per tap (finger must lift before the next tap counts, so a

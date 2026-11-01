@@ -99,9 +99,7 @@ const unsigned long DTC_SCAN_INTERVAL_MS = 60000;
 const unsigned long DTC_SCAN_INTERVAL_MS = 10000;
 #endif
 
-// Swipes (gauges build): sideways travel that counts as a swipe, and how long the finger
-// must be gone before it counts as lifted
-const int SWIPE_MIN_PX                = 40;
+// Taps (gauges build): how long the finger must be gone before it counts as lifted
 const unsigned long TOUCH_RELEASE_MS  = 40;
 
 // How long the background task waits between Bluetooth connection attempts

@@ -135,8 +135,8 @@ leaves out the phone hotspot, SD card, drive log, bus sniffer, and the transfer 
 pages, which can't answer on CAN. Saved settings carry over. To go back, upload the default
 build with USB: the gauges build has no phone update page.
 
-Touch comes first in this build: swipe left or right to change pages, and tap a gauge for its
-menu. It reads one value every 0.5 s, so a 4-gauge page updates about every 2 s, and off-page
+Touch comes first in this build: change pages with the **< PREV** and **NEXT >** buttons along
+the bottom of the gauge and codes pages (no swiping), and tap a gauge for its menu. It reads one value every 0.5 s, so a 4-gauge page updates about every 2 s, and off-page
 alarm gauges about every 5 s.
 
 ## Getting started
@@ -535,7 +535,7 @@ Ford-specific PIDs.
 
 ## Roadmap
 
-- [ ] Remove screen swiping from the gauges build and change pages with touch buttons instead
+- [x] Remove screen swiping from the gauges build and change pages with touch buttons instead
 - [x] Confirm the ABS and 4WD modules are on the K-line (pin 7): ABS is module `28` and the GEM,
       which runs 4WD on this truck, is module `52`
 - [x] Find the numeric PIDs for the 4WD switch, `PLATE_A`–`D`, `LF_WSPD`, `RF_WSPD` and `R_DIF_SPD`
