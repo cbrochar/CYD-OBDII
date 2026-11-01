@@ -68,6 +68,7 @@ inline void enterDeepSleep(const String& why) {
                                                     " s to check the truck)" : String(")")));
     if (settingsDirty) settingsSave();
     driveLogStop();   // close the drive log cleanly (drive_log.h, included before this file)
+    sniffStop(false, "going to sleep");
     Serial.flush();
 
     tft.writecommand(0x10);                       // ILI9341 sleep in: panel draws almost nothing
@@ -86,6 +87,7 @@ inline void enterDeepSleep(const String& why) {
 
 // Call on every loop() pass, after the Bluetooth and touch handling
 inline void powerTick() {
+    if (busSniffing) lastActivityMs = millis();   // stay awake while the bus sniffer records
     unsigned long idle = millis() - lastActivityMs;
     if (wokeByTimer) {
         if (idle > WAKE_CHECK_MS) enterDeepSleep("Timed check: no reply from the truck");

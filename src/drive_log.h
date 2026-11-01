@@ -38,6 +38,7 @@ inline String driveCodesText() {
 
 // True while the gauges can't be read (no truck, or the CAN sniffer has the bus)
 inline bool driveLogPaused() {
+    if (busSniffing) return true;   // the gauges aren't read while the bus sniffer records
 #ifdef CAN_LOGGER_H
     if (canListenOnly) return true;
 #endif

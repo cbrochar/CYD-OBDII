@@ -40,11 +40,12 @@ const int CANVAS_STRIPS = 4;
 // Display layout / paging
 const int METRICS_PER_PAGE = 4;   // 2 x 2 grid of cards
 const int METRIC_PAGES     = 3;   // card pages; must match the metric table in display_ui.h (12 metrics)
-const int TOTAL_PAGES      = 6;   // metric pages + DTC list + drive log + settings
+const int TOTAL_PAGES      = 7;   // metric pages + DTC list + drive log + bus sniffer + settings
 const int PAGE_ABS         = 2;   // ABS wheel speeds (only polled while this page is shown)
 const int PAGE_DTC         = 3;   // stored trouble code list
 const int PAGE_LOG         = 4;   // drive log to the SD card (REC / MARK)
-const int PAGE_SETTINGS    = 5;   // settings (saved in flash)
+const int PAGE_SNIFF       = 5;   // bus sniffer: records raw traffic to the SD card (START / MARK)
+const int PAGE_SETTINGS    = 6;   // settings (saved in flash)
 
 // Stored trouble codes kept for the DTC page (3 columns x 5 rows); pending codes too
 const int MAX_DTCS = 15;

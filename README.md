@@ -23,7 +23,7 @@ Without an adapter it runs on demo values, so you can test the screens on the be
 
 ## Features
 
-- **6 pages**, tap to move between them (page dots at the bottom show where you are)
+- **7 pages**, tap to move between them (page dots at the bottom show where you are)
   1. Transfer case · Turbo boost · Vehicle speed · Transmission temp
   2. FICM main power · Coolant temp · System volts · Engine RPM
   3. ABS: Left-front wheel speed · Right-front wheel speed · Rear axle speed · ABS status (warning triangle when the ABS module has stored codes)
@@ -31,7 +31,9 @@ Without an adapter it runs on demo values, so you can test the screens on the be
      yellow (detected once but not confirmed yet, so they show up before the check-engine light);
      green when clear. **Tap a code** to see what it means.
   5. **Drive log**: REC / MARK / STOP to record the gauges to the SD card, see [Drive log](#drive-log)
-  6. **Settings**: brightness, units, alarm limits, power and WiFi, saved in flash, see
+  6. **Bus sniffer**: records what FORScan asks the truck (through a Y-cable) to the SD card,
+     to find the right PIDs, see [Bus sniffer](#bus-sniffer)
+  7. **Settings**: brightness, units, alarm limits, power and WiFi, saved in flash, see
      [Settings page](#settings-page)
 - **Tap menu**: tap any gauge to get **NEXT PAGE** and **FULL SCREEN** buttons.
   Full screen shows that one gauge as large as it fits; tap again to go back.
@@ -199,9 +201,64 @@ seconds,TURBO BOOST (PSI),VEHICLE SPEED (MPH),TRANS TEMP (F),FICM MAIN PWR (V),C
 - The file is saved to the card every 5 seconds, so unplugging loses at most the last 5 seconds.
   `DRIVE_LOG_INTERVAL_MS` and `DRIVE_LOG_FLUSH_MS` in `config.h` change the timings.
 
+## Bus sniffer
+
+The SNIFF page turns the CYD into a recorder for finding PIDs. FORScan already knows each
+reading's request and conversion (it shows names like `ECT` or `LF_WSPD` with real values),
+but not the raw request it sends. With a **Y-cable** on the OBD port, FORScan on a second
+adapter does the asking, and the CYD's ELM327 listens and records every request and reply.
+
+```
+              ┌─ USB adapter ── laptop running FORScan   (asks for the data)
+OBD port ── Y ┤
+              └─ Bluetooth ELM327 ── CYD, SNIFF page     (only listens, records to SD)
+```
+
+**Recording**
+
+1. Plug both adapters into the Y-cable, key on, and wait for the CYD to connect
+   (status bar `MONITOR ACTIVE`). An SD card must be in the CYD.
+2. On the SNIFF page tap **MODE** to choose what to listen to:
+
+   | Mode | Listens to | Use it for |
+   |---|---|---|
+   | **CAN ENGINE** | CAN IDs 7E0–7EF only (the engine PCM and the other diagnostic IDs) | Coolant, trans temp, ICP and other PCM readings |
+   | **CAN ALL** | Every CAN ID | Seeing which modules talk on CAN (cheap adapters overflow; it restarts by itself) |
+   | **K-LINE** | ISO 9141, OBD pin 7 | The ABS and 4WD modules, which the workshop manual puts on the K-line |
+
+3. Tap **START**. The status bar turns blue (`BUS SNIFFER RECORDING`): the gauges are paused,
+   and the page shows the last lines heard.
+4. In FORScan, open **Live Data** and select **one reading at a time**. Each time you switch
+   reading, or do something like shifting to 4H, tap **MARK** and write down the mark number,
+   the reading's name and the value FORScan shows.
+5. Tap **STOP**. The adapter is reset and the gauges carry on. You can't leave the page while
+   recording, because a page swipe stalls the CYD long enough to lose data.
+
+The file is `SNIFnnn.TXT` on the SD card (also on the phone's **Logs** tab). Each line is the
+seconds since START and what the adapter heard, for example:
+
+```
+12.410 7E0 03 22 11 39 00 00 00 00     <- request: service 22, PID 1139
+12.455 7E8 05 62 11 39 0F 00 00 00     <- reply: raw value 0F00
+15.002 MARK 1
+```
+
+**Tips**
+
+- One reading at a time keeps the capture easy to match. FORScan sometimes bundles readings
+  into one custom request (a `2C ...` setup message, then repeated `22 F2xx` reads); the
+  original PIDs are inside the `2C` message.
+- Record each reading at two or more different values (cold and warm, parked and moving, 2H /
+  4H / 4L), so the conversion formula can be worked out.
+- CAN and the K-line need separate recordings: the adapter listens to one at a time.
+- The file starts with each setup command and the adapter's answer. A `?` means this adapter
+  doesn't support that command, which helps explain an empty capture.
+- In FORScan, use **Live Data only**. Service Functions and Configuration send commands to the
+  modules.
+
 ## Settings page
 
-The settings page (after the codes page) changes these without editing code. Changes are saved
+The settings page (the last page) changes these without editing code. Changes are saved
 in the ESP32's flash 2 seconds after the last tap, so they survive power-off and firmware uploads.
 
 | Section | Setting | Default |
@@ -401,6 +458,7 @@ CYD-OBDII/
 │   ├── brightness.h     Auto brightness: light sensor -> backlight PWM
 │   ├── settings.h       Settings page values, saved in flash (NVS)
 │   ├── drive_log.h      Drive log: gauges to DRIVEnnn.CSV on the SD card
+│   ├── bus_sniffer.h    Bus sniffer: raw bus traffic to SNIFnnn.TXT on the SD card
 │   ├── sd_card.h        SD card setup, shared by the loggers
 │   ├── touch_bitbang.h  XPT2046 touch driver (bit-banged, frees the SPI bus for the SD card)
 │   ├── dtc_descriptions.h  What each trouble code means

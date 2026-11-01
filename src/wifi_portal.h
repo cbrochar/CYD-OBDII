@@ -160,9 +160,13 @@ inline void handleLive() {
     webServer.send(200, "application/json", j);
 }
 
-// Only names the loggers write are accepted (DRIVE001.CSV, CAN0001.LOG / .TXT), so a
-// request can't reach any other file
+// Only names the loggers write are accepted (DRIVE001.CSV, SNIF001.TXT, CAN0001.LOG / .TXT),
+// so a request can't reach any other file
 inline bool validLogName(const String& n) {
+    if (n.length() == 11 && n.startsWith("SNIF") && n.endsWith(".TXT")) {
+        for (int i = 4; i < 7; i++) if (!isDigit(n[i])) return false;
+        return true;
+    }
     if (n.length() == 12 && n.startsWith("DRIVE") && n.endsWith(".CSV")) {
         for (int i = 5; i < 8; i++) if (!isDigit(n[i])) return false;
         return true;
@@ -177,6 +181,7 @@ inline bool isRecordingFile(const String& n) {
 #ifdef CAN_LOGGER_H
     if (logRecording && n.startsWith(logName)) return true;
 #endif
+    if (busSniffing && n == sniffName) return true;
     return driveLogging && n == driveLogName;
 }
 
@@ -186,7 +191,8 @@ inline void handleLogs() {
     if (!sdBegin()) {
         body += "<p class='dim'>No SD card found.</p></main>";
     } else {
-        body += "<p class='dim'>.CSV = drive logs (gauges once a second, for a spreadsheet)"
+        body += "<p class='dim'>.CSV = drive logs (gauges once a second, for a spreadsheet), "
+                "SNIFnnn.TXT = bus sniffer captures"
 #ifdef CAN_LOGGER_H
                 ", .LOG = all CAN frames (candump format, for SavvyCAN or tools/can_compare.py),"
                 " .TXT = START and MARK times"
@@ -263,6 +269,7 @@ inline void handleUpdateUpload() {
         logStop();   // close any SD recording first
 #endif
         driveLogStop();
+        sniffStop();
         tft.fillRect(0, 0, 320, STATUS_BAR_H, TFT_BLUE);
         tft.setTextColor(TFT_WHITE, TFT_BLUE);
         tft.drawCentreString("UPDATING FIRMWARE - DON'T POWER OFF", 160, 4, 2);

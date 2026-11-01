@@ -43,6 +43,10 @@ static unsigned long lastPcmReplyMs = 0;
 // Cleared on every new connection, since the adapter is re-initialised.
 static String currentHeader = "";
 
+// True while the SNIFF page records (bus_sniffer.h): the adapter is in monitor mode, and
+// sending it anything would end that, so the gauges and code scans are skipped
+static bool busSniffing = false;
+
 inline void setHeader(const char* header) {
     if (currentHeader == header) return;
     logDebug("OBD_BUS", "Setting target header to ATSH" + String(header));
@@ -339,7 +343,7 @@ inline void checkAlarms();
 // Main polling routine (only called while connected). Only the values being shown
 // are read, so each refresh is a handful of requests instead of all of them.
 inline void updateVehicleData() {
-    if (!isConnected) return;
+    if (!isConnected || busSniffing) return;
 
     unsigned long start = millis();
     pollVisibleMetrics();

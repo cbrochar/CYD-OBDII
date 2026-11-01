@@ -61,9 +61,9 @@ static_assert(METRIC_COUNT <= METRIC_PAGES * METRICS_PER_PAGE,
               "Metric table has more entries than METRIC_PAGES * METRICS_PER_PAGE");
 static_assert(METRIC_COUNT <= PAGE_ABS * METRICS_PER_PAGE + 3,
               "The ABS page's 4th slot is reserved for the ABS status card");
-static_assert(PAGE_DTC == METRIC_PAGES && PAGE_LOG == PAGE_DTC + 1 && PAGE_SETTINGS == PAGE_LOG + 1 &&
-              TOTAL_PAGES == METRIC_PAGES + 3,
-              "Page order: metric pages, DTC page, LOG page, settings page");
+static_assert(PAGE_DTC == METRIC_PAGES && PAGE_LOG == PAGE_DTC + 1 && PAGE_SNIFF == PAGE_LOG + 1 &&
+              PAGE_SETTINGS == PAGE_SNIFF + 1 && TOTAL_PAGES == METRIC_PAGES + 4,
+              "Page order: metric pages, DTC page, LOG page, SNIFF page, settings page");
 
 inline bool metricVisible(int idx) {
     if (fullScreenMetric >= 0) return idx == fullScreenMetric;
@@ -154,6 +154,7 @@ inline void checkAlarms() {
 }
 
 #include "drive_log.h"   // needs the metrics table and alarm helpers above
+#include "bus_sniffer.h"
 
 // ---- Status bar --------------------------------------------------------------
 // Drawn directly on the TFT. Only repaints when its text changes.
@@ -162,7 +163,10 @@ inline void updateStatusBar(bool force = false) {
     String text;
     uint16_t bg, fg;
 
-    if (isConnected) {
+    if (isConnected && busSniffing) {
+        text = "BUS SNIFFER RECORDING - GAUGES PAUSED";
+        bg = TFT_BLUE;         fg = TFT_WHITE;
+    } else if (isConnected) {
         int alarm = firstAlarmMetric();
         if (alarm >= 0) {
             // e.g. "[!] TRANS TEMP HIGH: 224 F"
@@ -623,6 +627,56 @@ inline void drawLogPageToCanvas() {
     drawSnifferButton(2, "NEXT >", TFT_WHITE, false);
 }
 
+// ---- SNIFF page (bus sniffer) ---------------------------------------------------------
+// START / STOP recording, MODE (while stopped) or MARK (while recording), NEXT page.
+inline void drawSniffPageToCanvas() {
+    canvas.setTextSize(1);
+    canvas.setTextColor(TFT_ORANGE, TFT_BLACK);
+    canvas.drawString("BUS SNIFFER", 6, 4, 2);
+    canvas.setTextColor(busSniffing ? TFT_RED : TFT_DARKGREY, TFT_BLACK);
+    canvas.drawRightString(busSniffing ? "REC" : "STOPPED", 314, 4, 2);
+    canvas.drawFastHLine(4, 22, 312, TFT_DARKGREY);
+
+    if (busSniffing) {
+        canvas.setTextColor(TFT_RED, TFT_BLACK);
+        canvas.drawString(sniffName, 10, 28, 2);
+        canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+        canvas.drawString(String(SNIFF_MODES[sniffMode].name) + "   " + fmtDuration(millis() - sniffStartMs), 110, 28, 2);
+        canvas.drawString("Lines " + String(sniffLines) + "   Marks " + String(sniffMarks) +
+                          "   Restarts " + String(sniffRestarts), 10, 48, 2);
+        // The last lines heard, oldest first, in the small font (52 characters fit)
+        canvas.setTextColor(TFT_GREEN, TFT_BLACK);
+        for (int i = 0; i < SNIFF_RECENT; i++) {
+            String line = sniffRecent[(sniffRecentNext + i) % SNIFF_RECENT];
+            if (line.length() > 52) line = line.substring(0, 52);
+            canvas.drawString(line, 8, 74 + i * 16, 1);
+        }
+    } else {
+        canvas.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+        canvas.drawString("Records what FORScan (on a Y-cable) asks", 10, 28, 2);
+        canvas.drawString("the truck, to SNIFnnn.TXT on the SD card.", 10, 46, 2);
+        canvas.drawString("The adapter only listens; gauges pause.", 10, 64, 2);
+        canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+        canvas.drawString("Mode: " + String(SNIFF_MODES[sniffMode].name), 10, 90, 4);
+        if (sniffError.length()) {
+            canvas.setTextColor(TFT_RED, TFT_BLACK);
+            canvas.drawString(sniffError, 10, 126, 2);
+        } else if (sniffName.length()) {
+            canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+            canvas.drawString("Last: " + sniffName + ", " + String(sniffLines) + " lines", 10, 126, 2);
+        }
+        canvas.setTextColor(TFT_DARKGREY, TFT_BLACK);
+        canvas.drawString("Get files from the card or the phone's Logs tab.", 10, 152, 2);
+    }
+
+    if (busSniffing) drawSnifferButton(0, "STOP", TFT_RED, true);
+    else             drawSnifferButton(0, "START", isConnected ? TFT_RED : TFT_DARKGREY, false);
+    if (busSniffing) drawSnifferButton(1, sniffMarks ? "MARK " + String(sniffMarks) : String("MARK"), TFT_YELLOW, false);
+    else             drawSnifferButton(1, "MODE", TFT_CYAN, false);
+    // Leaving the page while recording would stall the loop and lose data
+    drawSnifferButton(2, "NEXT >", busSniffing ? TFT_DARKGREY : TFT_WHITE, false);
+}
+
 // Builds one page (2x2 card grid or the DTC list, + page dots). Works the same connected or not.
 inline void buildPage(int pageNum) {
     canvas.fillSprite(TFT_BLACK);
@@ -631,6 +685,8 @@ inline void buildPage(int pageNum) {
         drawDtcPageToCanvas();
     } else if (pageNum == PAGE_LOG) {
         drawLogPageToCanvas();
+    } else if (pageNum == PAGE_SNIFF) {
+        drawSniffPageToCanvas();
     } else if (pageNum == PAGE_SETTINGS) {
         drawSettingsPageToCanvas();
     } else {
@@ -644,7 +700,7 @@ inline void buildPage(int pageNum) {
         if (pageNum == PAGE_ABS) drawAbsStatusCard(COL_X[1], ROW_Y[1]);
     }
 
-    if (pageNum == PAGE_SETTINGS || pageNum == PAGE_LOG) return;   // footer buttons instead of page dots
+    if (pageNum == PAGE_SETTINGS || pageNum == PAGE_LOG || pageNum == PAGE_SNIFF) return;   // footer buttons instead of page dots
     int pipStart = 160 - ((TOTAL_PAGES - 1) * 10);
     for (int i = 0; i < TOTAL_PAGES; i++) {
         uint32_t pipColor = (i == pageNum) ? TFT_WHITE : TFT_DARKGREY;
@@ -784,6 +840,19 @@ inline void driveLogTap(int cx, int cy) {
     else                          scrollToNextPage();
 }
 
+// Taps on the SNIFF page: only the footer buttons do something
+inline void sniffTap(int cx, int cy) {
+    if (cy < SNIFF_FOOTER_Y) return;
+    if (cx < SNIFF_BTN_X[1]) {
+        if (busSniffing) sniffStop(); else sniffStart();
+    } else if (cx < SNIFF_BTN_X[2]) {
+        if (busSniffing) sniffMark();
+        else { sniffMode = (sniffMode + 1) % SNIFF_MODE_COUNT; sniffError = ""; }
+    } else if (!busSniffing) {
+        scrollToNextPage();
+    }
+}
+
 // Taps on the Settings page (see drawSettingsPageToCanvas)
 inline void settingsTap(int cx, int cy) {
     const SettingSection& sec = SETTING_SECTIONS[settingsSection];
@@ -843,6 +912,8 @@ inline void handleTap(int sx, int sy) {
         }
     } else if (currentPage == PAGE_LOG) {
         driveLogTap(cx, cy);
+    } else if (currentPage == PAGE_SNIFF) {
+        sniffTap(cx, cy);
     } else if (currentPage == PAGE_SETTINGS) {
         settingsTap(cx, cy);
     } else if (dtcDetail >= 0) {

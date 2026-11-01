@@ -105,6 +105,10 @@ void loop() {
     }
     wasTouched = touchedNow;
 
+    // Bus sniffer (SNIFF page): move what the adapter heard to the SD card. Early in the
+    // loop, so the Bluetooth receive buffer is emptied often.
+    sniffTick();
+
     // Close the tap menu if nothing was pressed
     if (menuMetric >= 0 && millis() - menuShownAt > MENU_TIMEOUT_MS) {
         menuMetric = -1;
