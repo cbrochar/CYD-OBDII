@@ -48,6 +48,9 @@ void setup() {
     delay(500);
     logDebug("SYS_INIT", "Powering up ESP32 core subsystems...");
     settingsLoad();   // before anything uses brightness, alarm or power settings
+#ifdef GAUGES_ONLY
+    gaugeLayoutUpdate();
+#endif
     powerBegin();
 
     tft.init();

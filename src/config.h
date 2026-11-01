@@ -45,11 +45,13 @@ const int CANVAS_STRIPS = 4;
 // Display layout / paging
 const int METRICS_PER_PAGE = 4;   // 2 x 2 grid of cards
 #ifdef GAUGES_ONLY
-const int METRIC_PAGES     = 2;   // card pages; must match the metric table in display_ui.h
-const int TOTAL_PAGES      = 4;   // metric pages + DTC list + settings
+// The gauges chosen on the Settings page set how many card pages there are, so these
+// change at run time (gaugeLayoutUpdate in display_ui.h)
+static int METRIC_PAGES    = 2;   // card pages
+static int TOTAL_PAGES     = 4;   // metric pages + DTC list + settings
 const int PAGE_ABS         = -1;  // no ABS page: the module is on the K-line
-const int PAGE_DTC         = 2;   // stored trouble code list
-const int PAGE_SETTINGS    = 3;   // settings (saved in flash)
+static int PAGE_DTC        = 2;   // stored trouble code list
+static int PAGE_SETTINGS   = 3;   // settings (saved in flash)
 #else
 const int METRIC_PAGES     = 3;   // card pages; must match the metric table in display_ui.h (12 metrics)
 const int TOTAL_PAGES      = 7;   // metric pages + DTC list + drive log + bus sniffer + settings
@@ -59,6 +61,10 @@ const int PAGE_LOG         = 4;   // drive log to the SD card (REC / MARK)
 const int PAGE_SNIFF       = 5;   // bus sniffer: records raw traffic to the SD card (START / MARK)
 const int PAGE_SETTINGS    = 6;   // settings (saved in flash)
 #endif
+
+// Gauges shown by default (gauges build): one bit per entry of the metric table, saved in
+// flash. The first seven are the original gauges.
+const uint32_t DEFAULT_GAUGE_MASK = 0x7F;
 
 // Stored trouble codes kept for the DTC page (3 columns x 5 rows); pending codes too
 const int MAX_DTCS = 15;
@@ -174,6 +180,8 @@ extern String valSpeed;
 extern String valWheelLF;
 extern String valWheelRF;
 extern String valWheelRear;        // single rear-axle (differential) speed sensor
+extern String valLoad, valIAT, valMAF, valRunTime, valFuel, valMAP, valBaro;   // optional gauges
+extern String valEgrCmd, valEgrErr, valPedal, valDistMil, valDistClear, valWarmups;
 extern bool hasDTCWarning;
 extern String dtcCodes[MAX_DTCS];   // decoded codes, e.g. "P0470"
 extern int dtcTotal;                // codes reported by the ECU (-1 = not read yet)

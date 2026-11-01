@@ -29,6 +29,8 @@ const int PIP_Y        = 204;
 // ---- Metric table ----------------------------------------------------------
 // Pages are filled in order, METRICS_PER_PAGE at a time.
 // To add/reorder a value, edit this table (and TOTAL_PAGES in config.h).
+// Gauges build: the Settings page turns each entry on or off, and saves that by position, so
+// add new entries at the end. A hidden gauge with an alarm limit is still checked.
 // Values are stored WITHOUT units; the unit is drawn separately in a smaller font.
 // poll reads that value from the truck; only on-screen metrics are polled, except that
 // metrics with alarm limits are also read in the background (checkAlarms).
@@ -57,9 +59,23 @@ static const Metric metrics[] = {
     {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN,   pollFICM,   &settings.ficmLowV, NO_ALARM, true },
     {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW,  pollVolts,  &settings.voltsLowV, &settings.voltsHighV, true },
     {"ENGINE RPM",     &valRPM,    "",    TFT_WHITE,   pollRPM,    NO_ALARM, NO_ALARM, true },
+    // Off by default, chosen on the Settings page
+    {"ENGINE LOAD",    &valLoad,      "%",   TFT_ORANGE,  pollLoad,      NO_ALARM, NO_ALARM, true },
+    {"INTAKE AIR TEMP", &valIAT,      "F",   TFT_SKYBLUE, pollIAT,       NO_ALARM, NO_ALARM, true },
+    {"MASS AIR FLOW",  &valMAF,       "G/S", TFT_CYAN,    pollMAF,       NO_ALARM, NO_ALARM, true },
+    {"ENGINE RUN TIME", &valRunTime,  "",    TFT_WHITE,   pollRunTime,   NO_ALARM, NO_ALARM, true },
+    {"FUEL LEVEL",     &valFuel,      "%",   TFT_GREEN,   pollFuel,      NO_ALARM, NO_ALARM, true },
+    {"MANIFOLD PRESS", &valMAP,       "KPA", TFT_CYAN,    pollMAP,       NO_ALARM, NO_ALARM, true },
+    {"BARO PRESSURE",  &valBaro,      "KPA", TFT_SKYBLUE, pollBaro,      NO_ALARM, NO_ALARM, true },
+    {"EGR COMMAND",    &valEgrCmd,    "%",   TFT_ORANGE,  pollEgrCmd,    NO_ALARM, NO_ALARM, true },
+    {"EGR ERROR",      &valEgrErr,    "%",   TFT_ORANGE,  pollEgrErr,    NO_ALARM, NO_ALARM, true },
+    {"PEDAL POSITION", &valPedal,     "%",   TFT_YELLOW,  pollPedal,     NO_ALARM, NO_ALARM, true },
+    {"DIST WITH MIL",  &valDistMil,   "MI",  TFT_RED,     pollDistMil,   NO_ALARM, NO_ALARM, true },
+    {"DIST CODES CLR", &valDistClear, "MI",  TFT_MAGENTA, pollDistClear, NO_ALARM, NO_ALARM, true },
+    {"WARMUPS CLEARED", &valWarmups,  "",    TFT_MAGENTA, pollWarmups,   NO_ALARM, NO_ALARM, true },
 #else
     // Page 0
-    {"TRANSFER CASE",  &valTCase,  "",    TFT_ORANGE,  pollTCase,  NO_ALARM, NO_ALARM, false},
+    {"TRANSFER CASE", &valTCase,  "",    TFT_ORANGE,  pollTCase,  NO_ALARM, NO_ALARM, false},
     {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN,    pollBoost,  NO_ALARM, NO_ALARM, true },
     {"VEHICLE SPEED",  &valSpeed,  "MPH", TFT_SKYBLUE, pollSpeed,  NO_ALARM, NO_ALARM, true },
     {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA, pollTFT,    NO_ALARM, &settings.tftHighF, true },
@@ -76,12 +92,11 @@ static const Metric metrics[] = {
 #endif
 };
 static const int METRIC_COUNT = sizeof(metrics) / sizeof(metrics[0]);
+#ifdef GAUGES_ONLY
+static_assert(METRIC_COUNT <= 32, "settings.gaugeMask has one bit per metric");
+#else
 static_assert(METRIC_COUNT <= METRIC_PAGES * METRICS_PER_PAGE,
               "Metric table has more entries than METRIC_PAGES * METRICS_PER_PAGE");
-#ifdef GAUGES_ONLY
-static_assert(PAGE_DTC == METRIC_PAGES && PAGE_SETTINGS == PAGE_DTC + 1 && TOTAL_PAGES == METRIC_PAGES + 2,
-              "Page order: metric pages, DTC page, settings page");
-#else
 static_assert(METRIC_COUNT <= PAGE_ABS * METRICS_PER_PAGE + 3,
               "The ABS page's 4th slot is reserved for the ABS status card");
 static_assert(PAGE_DTC == METRIC_PAGES && PAGE_LOG == PAGE_DTC + 1 && PAGE_SNIFF == PAGE_LOG + 1 &&
@@ -89,9 +104,51 @@ static_assert(PAGE_DTC == METRIC_PAGES && PAGE_LOG == PAGE_DTC + 1 && PAGE_SNIFF
               "Page order: metric pages, DTC page, LOG page, SNIFF page, settings page");
 #endif
 
+#ifdef GAUGES_ONLY
+// The chosen gauges in order; gaugePosition[metric] is its place in that list, -1 if hidden
+static int shownGauges[METRIC_COUNT];
+static int gaugePosition[METRIC_COUNT];
+static int shownGaugeCount = 0;
+
+inline uint32_t allGaugesMask() {
+    return METRIC_COUNT >= 32 ? 0xFFFFFFFFUL : (1UL << METRIC_COUNT) - 1;
+}
+
+// Rebuilds the card pages from settings.gaugeMask. The codes and Settings pages follow them.
+inline void gaugeLayoutUpdate() {
+    if (!(settings.gaugeMask & allGaugesMask())) settings.gaugeMask = DEFAULT_GAUGE_MASK;
+    shownGaugeCount = 0;
+    for (int idx = 0; idx < METRIC_COUNT; idx++) {
+        bool shown = (settings.gaugeMask >> idx) & 1;
+        gaugePosition[idx] = shown ? shownGaugeCount : -1;
+        if (shown) shownGauges[shownGaugeCount++] = idx;
+    }
+    METRIC_PAGES  = (shownGaugeCount + METRICS_PER_PAGE - 1) / METRICS_PER_PAGE;
+    PAGE_DTC      = METRIC_PAGES;
+    PAGE_SETTINGS = PAGE_DTC + 1;
+    TOTAL_PAGES   = PAGE_SETTINGS + 1;
+}
+
+inline int metricAtSlot(int page, int slot) {
+    int position = page * METRICS_PER_PAGE + slot;
+    return position < shownGaugeCount ? shownGauges[position] : -1;
+}
+inline int metricSlot(int idx) { return max(gaugePosition[idx], 0) % METRICS_PER_PAGE; }
+inline bool metricOnPage(int idx, int page) {
+    return gaugePosition[idx] >= 0 && gaugePosition[idx] / METRICS_PER_PAGE == page;
+}
+#else
+inline int metricAtSlot(int page, int slot) {
+    int idx = page * METRICS_PER_PAGE + slot;
+    return idx < METRIC_COUNT ? idx : -1;
+}
+inline int metricSlot(int idx) { return idx % METRICS_PER_PAGE; }
+inline bool metricOnPage(int idx, int page) { return idx / METRICS_PER_PAGE == page; }
+#endif
+
 inline bool metricVisible(int idx) {
     if (fullScreenMetric >= 0) return idx == fullScreenMetric;
-    return currentPage < METRIC_PAGES && idx / METRICS_PER_PAGE == currentPage;
+    return currentPage < METRIC_PAGES && metricOnPage(idx, currentPage);
 }
 
 inline void pollVisibleMetrics() {
@@ -143,6 +200,7 @@ inline String shownValue(int idx) {
     if (!isNumber(v)) return v;
     if (settings.celsius && strcmp(m.unit, "F") == 0) return String((v.toFloat() - 32) * 5 / 9, 0);
     if (settings.kmh && strcmp(m.unit, "MPH") == 0)   return String(v.toFloat() * 1.609344, 0);
+    if (settings.kmh && strcmp(m.unit, "MI") == 0)    return String(v.toFloat() * 1.609344, 0);
     return v;
 }
 
@@ -150,6 +208,7 @@ inline const char* shownUnit(int idx) {
     const char* u = metrics[idx].unit;
     if (settings.celsius && strcmp(u, "F") == 0) return "C";
     if (settings.kmh && strcmp(u, "MPH") == 0)   return "KM/H";
+    if (settings.kmh && strcmp(u, "MI") == 0)    return "KM";
     return u;
 }
 
@@ -578,6 +637,25 @@ static const SettingRow SETTINGS_UPDATE[] = {
 };
 #endif
 
+#ifdef GAUGES_ONLY
+// Gauge choices: one ON / OFF row per metric, four to a section. The last gauge can't be
+// turned off. Changing one rebuilds the pages, which moves the Settings page itself.
+template <int I> String gaugeRowText() { return String((settings.gaugeMask >> I) & 1 ? "ON" : "OFF"); }
+template <int I> void gaugeRowToggle(int) {
+    uint32_t mask = settings.gaugeMask ^ (1UL << I);
+    if (mask & allGaugesMask()) settings.gaugeMask = mask;
+    gaugeLayoutUpdate();
+    currentPage = PAGE_SETTINGS;
+}
+#define GAUGE_ROW(i) {metrics[i].label, gaugeRowText<i>, gaugeRowToggle<i>, true}
+static_assert(METRIC_COUNT == 20, "Add a GAUGE_ROW for each metric");
+static const SettingRow SETTINGS_GAUGES1[] = {GAUGE_ROW(0),  GAUGE_ROW(1),  GAUGE_ROW(2),  GAUGE_ROW(3)};
+static const SettingRow SETTINGS_GAUGES2[] = {GAUGE_ROW(4),  GAUGE_ROW(5),  GAUGE_ROW(6),  GAUGE_ROW(7)};
+static const SettingRow SETTINGS_GAUGES3[] = {GAUGE_ROW(8),  GAUGE_ROW(9),  GAUGE_ROW(10), GAUGE_ROW(11)};
+static const SettingRow SETTINGS_GAUGES4[] = {GAUGE_ROW(12), GAUGE_ROW(13), GAUGE_ROW(14), GAUGE_ROW(15)};
+static const SettingRow SETTINGS_GAUGES5[] = {GAUGE_ROW(16), GAUGE_ROW(17), GAUGE_ROW(18), GAUGE_ROW(19)};
+#endif
+
 struct SettingSection { const char* title; const SettingRow* rows; int count; };
 static const SettingSection SETTING_SECTIONS[] = {
     {"DISPLAY", SETTINGS_DISPLAY, sizeof(SETTINGS_DISPLAY) / sizeof(SettingRow)},
@@ -587,6 +665,12 @@ static const SettingSection SETTING_SECTIONS[] = {
 #ifndef GAUGES_ONLY
     {"WIFI",    SETTINGS_WIFI,    sizeof(SETTINGS_WIFI) / sizeof(SettingRow)},
     {"UPDATE",  SETTINGS_UPDATE,  sizeof(SETTINGS_UPDATE) / sizeof(SettingRow)},
+#else
+    {"GAUGES A", SETTINGS_GAUGES1, 4},
+    {"GAUGES B", SETTINGS_GAUGES2, 4},
+    {"GAUGES C", SETTINGS_GAUGES3, 4},
+    {"GAUGES D", SETTINGS_GAUGES4, 4},
+    {"GAUGES E", SETTINGS_GAUGES5, 4},
 #endif
 };
 static const int SETTING_SECTION_COUNT = sizeof(SETTING_SECTIONS) / sizeof(SettingSection);
@@ -762,8 +846,8 @@ inline void buildPage(int pageNum) {
         drawSettingsPageToCanvas();
     } else {
         for (int slot = 0; slot < METRICS_PER_PAGE; slot++) {
-            int idx = pageNum * METRICS_PER_PAGE + slot;
-            if (idx >= METRIC_COUNT) break;
+            int idx = metricAtSlot(pageNum, slot);
+            if (idx < 0) break;
             drawCardToCanvas(COL_X[slot % 2], ROW_Y[slot / 2],
                              metrics[idx].label, shownValue(idx),
                              shownUnit(idx), metrics[idx].color, metricAlarmState(idx) != 0);
@@ -839,7 +923,7 @@ inline void drawMenuButton(int bx, const char* line1, const char* line2, uint32_
 }
 
 inline void drawTapMenu(int idx) {
-    int slot = idx % METRICS_PER_PAGE;
+    int slot = metricSlot(idx);
     int x = COL_X[slot % 2], y = ROW_Y[slot / 2];
     canvas.drawRect(x - 2, y - 2, CARD_W + 4, CARD_H + 4, TFT_WHITE);   // highlight the tapped gauge
     canvas.drawRect(x - 3, y - 3, CARD_W + 6, CARD_H + 6, TFT_WHITE);
@@ -908,8 +992,7 @@ inline void scrollToNextPage() {
 inline int metricAtPoint(int cx, int cy) {
     if (currentPage >= METRIC_PAGES) return -1;
     int slot = (cy < ROW_Y[1] ? 0 : 2) + (cx < COL_X[1] ? 0 : 1);
-    int idx = currentPage * METRICS_PER_PAGE + slot;
-    return (idx < METRIC_COUNT) ? idx : -1;
+    return metricAtSlot(currentPage, slot);
 }
 
 #ifndef GAUGES_ONLY
@@ -944,6 +1027,10 @@ inline void settingsTap(int cx, int cy) {
         } else if (cx < SNIFF_BTN_X[2]) {
             if (defaultsArmedAt && millis() - defaultsArmedAt < 3000) {
                 settingsDefaults();
+#ifdef GAUGES_ONLY
+                gaugeLayoutUpdate();
+                currentPage = PAGE_SETTINGS;
+#endif
                 settingsChanged();
                 defaultsArmedAt = 0;
                 logDebug("SETTINGS", "Back to defaults");

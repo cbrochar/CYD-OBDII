@@ -355,6 +355,39 @@ inline void pollSpeed() {
     }
 }
 
+// ---- Optional gauges (chosen on the Settings page) ----------------------------------
+// Standard Mode 01 PIDs the truck's PCM answered in the October log. The formulas are the
+// standard ones; none of these has been compared with FORScan on the truck yet.
+inline bool readMode01(const char* pid, int bytes, uint32_t& raw) {
+    String reply = queryCustomPID("7E0", pid);
+    String expected = "41" + String(pid + 2);
+    if (!reply.startsWith(expected) || (int)reply.length() < 4 + bytes * 2) return false;
+    raw = strtoul(reply.substring(4, 4 + bytes * 2).c_str(), NULL, 16);
+    return true;
+}
+
+inline void pollLoad()  { uint32_t a; if (readMode01("0104", 1, a)) valLoad  = String(a * 100 / 255.0, 0); }
+inline void pollIAT()   { uint32_t a; if (readMode01("010F", 1, a)) valIAT   = String(((int)a - 40) * 1.8 + 32, 0); }
+inline void pollMAF()   { uint32_t a; if (readMode01("0110", 2, a)) valMAF   = String(a / 100.0, 1); }
+inline void pollFuel()  { uint32_t a; if (readMode01("012F", 1, a)) valFuel  = String(a * 100 / 255.0, 0); }
+inline void pollMAP()   { uint32_t a; if (readMode01("010B", 1, a)) valMAP   = String(a); }
+inline void pollBaro()  { uint32_t a; if (readMode01("0133", 1, a)) valBaro  = String(a); }
+inline void pollEgrCmd(){ uint32_t a; if (readMode01("012C", 1, a)) valEgrCmd = String(a * 100 / 255.0, 0); }
+inline void pollEgrErr(){ uint32_t a; if (readMode01("012D", 1, a)) valEgrErr = String(((int)a - 128) * 100 / 128.0, 0); }
+inline void pollPedal() { uint32_t a; if (readMode01("0149", 1, a)) valPedal = String(a * 100 / 255.0, 0); }
+inline void pollWarmups()   { uint32_t a; if (readMode01("0130", 1, a)) valWarmups = String(a); }
+inline void pollDistMil()   { uint32_t a; if (readMode01("0121", 2, a)) valDistMil = String((int)(a * 0.621371)); }
+inline void pollDistClear() { uint32_t a; if (readMode01("0131", 2, a)) valDistClear = String((int)(a * 0.621371)); }
+
+// Seconds since the engine started, shown as minutes:seconds
+inline void pollRunTime() {
+    uint32_t s;
+    if (!readMode01("011F", 2, s)) return;
+    char text[10];
+    snprintf(text, sizeof(text), "%lu:%02lu", (unsigned long)(s / 60), (unsigned long)(s % 60));
+    valRunTime = text;
+}
+
 // Reads only the values on screen (the current page's cards, or the one full-screen
 // gauge) using each metric's poll function. Defined in display_ui.h with the metric table.
 inline void pollVisibleMetrics();

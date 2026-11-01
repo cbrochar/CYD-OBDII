@@ -27,6 +27,7 @@ struct Settings {
     int   screenOffMin;       // 0 = never
     int   sleepMin;           // 0 = never
     bool  wifiOn;             // phone hotspot (wifi_portal.h)
+    uint32_t gaugeMask;       // gauges shown (gauges build): one bit per metric table entry
 };
 
 static Settings settings;
@@ -78,6 +79,7 @@ inline void settingsDefaults() {
     settings.screenOffMin       = SCREEN_OFF_AFTER_MS / 60000;
     settings.sleepMin           = SLEEP_AFTER_MS / 60000;
     settings.wifiOn             = false;   // off by default: the hotspot draws ~100 mA
+    settings.gaugeMask          = DEFAULT_GAUGE_MASK;
 }
 
 // Call early in setup(), before anything uses the settings
@@ -98,7 +100,8 @@ inline void settingsLoad() {
     settings.screenOffMin       = p.getInt("screenOff", settings.screenOffMin);
     settings.sleepMin           = p.getInt("sleep", settings.sleepMin);
     settings.wifiOn             = p.getBool("wifiOn", settings.wifiOn);
-    wifiPassword                = p.getString("wifiPass", "");
+    settings.gaugeMask          = p.getUInt("gauges", settings.gaugeMask);
+    wifiPassword               = p.getString("wifiPass", "");
     p.end();
     logDebug("SETTINGS", "Loaded from flash: brightness " + String(settings.autoBrightness ? "auto" : "fixed") +
                          ", night " + String(settings.nightBrightnessPct) + "%, " + (settings.celsius ? "C" : "F") +
@@ -122,6 +125,7 @@ inline void settingsSave() {
     p.putInt("screenOff", settings.screenOffMin);
     p.putInt("sleep", settings.sleepMin);
     p.putBool("wifiOn", settings.wifiOn);
+    p.putUInt("gauges", settings.gaugeMask);
     p.end();
     settingsDirty = false;
     logDebug("SETTINGS", "Saved to flash");

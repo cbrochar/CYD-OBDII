@@ -139,6 +139,28 @@ Touch comes first in this build: change pages with the **< PREV** and **NEXT >**
 the bottom of the gauge and codes pages (no swiping), and tap a gauge for its menu. It reads one value every 0.5 s, so a 4-gauge page updates about every 2 s, and off-page
 alarm gauges about every 5 s.
 
+Tap **MORE** on the Settings page to reach **GAUGES A** to **E**, and turn each gauge ON or OFF.
+The gauges that are on fill the pages in order, four to a page, and the pages grow or shrink to
+fit. A hidden gauge with an alarm limit is still checked in the background. The original seven
+gauges are on by default. The optional ones are standard Mode 01 PIDs that the PCM answered in the
+October log, but they haven't been compared with FORScan yet:
+
+| Gauge | Request | Formula |
+|---|---|---|
+| Engine load | `0104` | A × 100 / 255 % |
+| Intake air temp | `010F` | A − 40 °C → °F |
+| Mass air flow | `0110` | (A×256 + B) / 100 g/s |
+| Engine run time | `011F` | A×256 + B seconds, shown as min:sec |
+| Fuel level | `012F` | A × 100 / 255 % |
+| Manifold pressure | `010B` | A kPa |
+| Baro pressure | `0133` | A kPa |
+| EGR command | `012C` | A × 100 / 255 % |
+| EGR error | `012D` | (A − 128) × 100 / 128 % |
+| Pedal position | `0149` | A × 100 / 255 % |
+| Distance with MIL on | `0121` | A×256 + B km → mi |
+| Distance since codes cleared | `0131` | A×256 + B km → mi |
+| Warm-ups since codes cleared | `0130` | A |
+
 ## Getting started
 
 ### 1. Tools

@@ -31,6 +31,9 @@ String valSpeed = "---";
 String valWheelLF = "---";
 String valWheelRF = "---";
 String valWheelRear = "---";
+String valLoad = "---", valIAT = "---", valMAF = "---", valRunTime = "---", valFuel = "---";
+String valMAP = "---", valBaro = "---", valEgrCmd = "---", valEgrErr = "---", valPedal = "---";
+String valDistMil = "---", valDistClear = "---", valWarmups = "---";
 bool hasDTCWarning = false;
 String dtcCodes[MAX_DTCS];
 int dtcTotal = -1;
@@ -48,6 +51,9 @@ void loadDemoValues() {
     valRPM    = "1850";
     valSpeed  = "62";
     valWheelLF = valWheelRF = valWheelRear = "62";
+    valLoad = "30";  valIAT = "70";   valMAF = "36.1";  valRunTime = "14:26";  valFuel = "50";
+    valMAP = "100";  valBaro = "102"; valEgrCmd = "0";  valEgrErr = "0";       valPedal = "16";
+    valDistMil = "0";  valDistClear = "88";  valWarmups = "6";
     absDtcTotal = 1;   // shows the ABS warning card so it can be checked on the bench
     hasDTCWarning = false;
     dtcCodes[0] = "P0470";
@@ -61,6 +67,8 @@ void clearLiveValues() {
     valTCase = valBoost = valFICM = valECT = "---";
     valTFT = valVolts = valRPM = valSpeed = "---";
     valWheelLF = valWheelRF = valWheelRear = "---";
+    valLoad = valIAT = valMAF = valRunTime = valFuel = valMAP = valBaro = "---";
+    valEgrCmd = valEgrErr = valPedal = valDistMil = valDistClear = valWarmups = "---";
     hasDTCWarning = false;
     dtcTotal = pendingTotal = absDtcTotal = -1;
 }
