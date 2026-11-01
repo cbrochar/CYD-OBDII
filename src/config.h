@@ -102,9 +102,12 @@ const unsigned long DRIVE_LOG_FLUSH_MS    = 5000;
 
 // Phone hotspot (wifi_portal.h), switched on from the Settings page. Join this network on a
 // phone and open http://192.168.4.1 for live gauges, codes, SD logs and firmware updates.
-// The password must be at least 8 characters.
+// There's no password in the code: each display makes its own random one the first time
+// the hotspot starts, keeps it in flash and shows it on the Settings page (WIFI).
 #define WIFI_AP_SSID      "CYD-OBDII"
-#define WIFI_AP_PASSWORD  "powerstroke"
+// Firmware uploads from the phone are refused unless "Allow upload" was switched on at the
+// display (Settings, UPDATE) within this long
+const unsigned long FW_UPLOAD_UNLOCK_MS = 5UL * 60 * 1000;
 
 // Global Shared Subsystem Instances
 extern TFT_eSPI tft;

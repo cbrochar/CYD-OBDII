@@ -491,8 +491,22 @@ static const SettingRow SETTINGS_WIFI[] = {
     {"Phone hotspot",    []() -> String { return String(!settings.wifiOn ? "OFF" : wifiStartFailed ? "FAILED" : "ON"); },
                          [](int) { settings.wifiOn = !settings.wifiOn; }, true},
     {"Network",          []() -> String { return String(WIFI_AP_SSID); }, nullptr, false},
-    {"Password",         []() -> String { return String(WIFI_AP_PASSWORD); }, nullptr, false},
+    // Tap to make a new password (the phone has to join again with it)
+    {"Password (tap=new)", []() -> String { return wifiPassword.length() ? wifiPassword : String("set when ON"); },
+                         [](int) { wifiPasswordNew(); wifiRestartNeeded = true; }, true},
     {"Then open",        []() -> String { return String("192.168.4.1"); }, nullptr, false},
+};
+// Firmware upload from the phone only works for a few minutes after it's allowed here
+static const SettingRow SETTINGS_UPDATE[] = {
+    {"Allow upload",     []() -> String {
+                             unsigned long s = fwUploadSecondsLeft();
+                             if (!s) return String("OFF");
+                             char b[12]; snprintf(b, sizeof(b), "ON %lu:%02lu", s / 60, s % 60);
+                             return String(b);
+                         },
+                         [](int) { fwUploadUnlockedAt = fwUploadUnlocked() ? 0 : max(1UL, millis()); }, true},
+    {"Turns off after",  []() -> String { return String(FW_UPLOAD_UNLOCK_MS / 60000) + " min"; }, nullptr, false},
+    {"Upload page",      []() -> String { return String("192.168.4.1/update"); }, nullptr, false},
 };
 
 struct SettingSection { const char* title; const SettingRow* rows; int count; };
@@ -502,6 +516,7 @@ static const SettingSection SETTING_SECTIONS[] = {
     {"VOLTAGE", SETTINGS_VOLTAGE, sizeof(SETTINGS_VOLTAGE) / sizeof(SettingRow)},
     {"POWER",   SETTINGS_POWER,   sizeof(SETTINGS_POWER) / sizeof(SettingRow)},
     {"WIFI",    SETTINGS_WIFI,    sizeof(SETTINGS_WIFI) / sizeof(SettingRow)},
+    {"UPDATE",  SETTINGS_UPDATE,  sizeof(SETTINGS_UPDATE) / sizeof(SettingRow)},
 };
 static const int SETTING_SECTION_COUNT = sizeof(SETTING_SECTIONS) / sizeof(SettingSection);
 

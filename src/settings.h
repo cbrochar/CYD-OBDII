@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <Preferences.h>
+#include <esp_system.h>
 #include "config.h"
 
 // ---- Settings ------------------------------------------------------------------------
@@ -31,6 +32,36 @@ struct Settings {
 static Settings settings;
 static bool settingsDirty = false;
 static bool wifiStartFailed = false;   // not a setting: the hotspot couldn't start (wifi_portal.h)
+static bool wifiRestartNeeded = false; // the password changed while the hotspot was on
+
+// Hotspot password: random, made the first time the hotspot starts and kept in flash. It's
+// not part of Settings, so DEFAULTS keeps it; the Settings page can make a new one.
+static String wifiPassword = "";
+
+// Firmware upload permission (Settings, UPDATE): not saved, and it lapses on its own
+static unsigned long fwUploadUnlockedAt = 0;   // 0 = locked
+
+inline bool fwUploadUnlocked() {
+    return fwUploadUnlockedAt && millis() - fwUploadUnlockedAt < FW_UPLOAD_UNLOCK_MS;
+}
+
+// Seconds left before uploads lock again (0 = locked)
+inline unsigned long fwUploadSecondsLeft() {
+    return fwUploadUnlocked() ? (FW_UPLOAD_UNLOCK_MS - (millis() - fwUploadUnlockedAt)) / 1000 : 0;
+}
+
+// Makes and saves a new 10-character hotspot password. Letters and digits that are easy
+// to tell apart and type on a phone (no 0/o, 1/l/i); about 49 bits of randomness.
+// esp_random() is a true random source while the radio is on (Bluetooth starts first).
+inline void wifiPasswordNew() {
+    static const char CHARS[] = "abcdefghjkmnpqrstuvwxyz23456789";
+    String pw = "";
+    for (int i = 0; i < 10; i++) pw += CHARS[esp_random() % (sizeof(CHARS) - 1)];
+    wifiPassword = pw;
+    Preferences p;
+    if (p.begin("cyd", false)) { p.putString("wifiPass", wifiPassword); p.end(); }
+    logDebug("SETTINGS", "New hotspot password made (shown on the Settings page)");
+}
 static unsigned long settingsChangedAt = 0;
 
 inline void settingsDefaults() {
@@ -67,6 +98,7 @@ inline void settingsLoad() {
     settings.screenOffMin       = p.getInt("screenOff", settings.screenOffMin);
     settings.sleepMin           = p.getInt("sleep", settings.sleepMin);
     settings.wifiOn             = p.getBool("wifiOn", settings.wifiOn);
+    wifiPassword                = p.getString("wifiPass", "");
     p.end();
     logDebug("SETTINGS", "Loaded from flash: brightness " + String(settings.autoBrightness ? "auto" : "fixed") +
                          ", night " + String(settings.nightBrightnessPct) + "%, " + (settings.celsius ? "C" : "F") +

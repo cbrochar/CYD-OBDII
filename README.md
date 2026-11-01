@@ -225,22 +225,28 @@ in the ESP32's flash 2 seconds after the last tap, so they survive power-off and
 The CYD can run its own WiFi hotspot, so a phone can see the dash without any app:
 
 1. On the CYD: Settings → **MORE** to **WIFI** → **Phone hotspot ON**.
-2. On the phone, join the WiFi network **`CYD-OBDII`**, password **`powerstroke`** (set
-   `WIFI_AP_SSID` / `WIFI_AP_PASSWORD` in [`src/config.h`](src/config.h)). If the phone warns
-   that the network has no internet, choose to stay connected.
+2. On the phone, join the WiFi network **`CYD-OBDII`**. The password is shown on the same
+   Settings page: each display makes its own random password the first time the hotspot
+   starts, and keeps it. If the phone warns that the network has no internet, choose to stay
+   connected.
 3. Open **http://192.168.4.1** in the phone's browser.
 
 | Tab | What it does |
 |---|---|
 | **Live** | All gauges, refreshed every second, in the units chosen on the CYD; alarms in red; stored and pending codes with their descriptions |
 | **Logs** | The drive logs on the SD card (`DRIVEnnn.CSV`): download to the phone or delete. The file being recorded is shown but can't be downloaded until you STOP |
-| **Update** | Upload a new firmware `.bin` (from `.pio/build/esp32dev/firmware.bin` after a PlatformIO build). The CYD restarts with it when the upload is checked |
+| **Update** | Upload a new firmware `.bin` (from `.pio/build/esp32dev/firmware.bin` after a PlatformIO build). First allow it on the CYD: Settings → **UPDATE** → **Allow upload ON** (turns itself off after 5 minutes). The CYD restarts with the new firmware when the upload is checked |
 
 - The phone only sees what the display already reads: no extra requests go to the truck.
 - The hotspot is **off by default** because it draws about 100 mA; the setting is remembered.
   While a phone is using the page the display stays awake.
-- Anyone in range who knows the password can use the page, including the firmware update. Change
-  the password in `config.h` if that matters to you.
+- Anyone in range who knows the password can see the gauges and download or delete drive logs.
+  To make a new password, tap **Password** on the WIFI settings page; phones then have to join
+  again with the new one.
+- Replacing the firmware also needs someone at the display to switch **Allow upload** on, so the
+  password alone isn't enough to install other firmware.
+- This version changes the flash layout, so the first install of it has to be over USB. After
+  that, updates can go over WiFi.
 
 ## Gauge alarms
 
@@ -371,7 +377,8 @@ values marked "default" are what the Settings page starts with and goes back to)
 | `BRIGHTNESS_MIN_PCT` | 10 | Default night-time backlight level |
 | `LDR_DARK_RAW` / `LDR_BRIGHT_RAW` | 2000 / 0 | Sensor readings for the night floor / full brightness |
 | `SCREEN_OFF_AFTER_MS` / `SLEEP_AFTER_MS` | 120000 / 300000 | Defaults: screen off / deep sleep after this long with no activity |
-| `WIFI_AP_SSID` / `WIFI_AP_PASSWORD` | CYD-OBDII / powerstroke | The phone hotspot's network name and password |
+| `WIFI_AP_SSID` | CYD-OBDII | The phone hotspot's network name (the password is random per display, see [Phone access](#phone-access-wifi)) |
+| `FW_UPLOAD_UNLOCK_MS` | 300000 | How long **Allow upload** stays on for firmware updates from the phone |
 | `WAKE_CHECK_INTERVAL_MS` / `WAKE_CHECK_MS` | 300000 / 30000 | Timed wake-up checks while asleep |
 | `TOUCH_RAW_*` | 200–3700 / 240–3800 | Touch calibration (the defaults work on the tested board) |
 

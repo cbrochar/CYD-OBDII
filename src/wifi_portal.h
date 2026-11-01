@@ -12,12 +12,15 @@
 
 // ---- Phone hotspot -------------------------------------------------------------------
 // With "Phone hotspot" ON (Settings page, WIFI) the CYD runs its own WiFi network,
-// WIFI_AP_SSID / WIFI_AP_PASSWORD. Join it and open http://192.168.4.1 for:
+// WIFI_AP_SSID, with a random per-display password shown on the Settings page.
+// Join it and open http://192.168.4.1 for:
 //   Live    gauges (same units as the screen, alarms in red), stored and pending codes
 //           with their descriptions; refreshes every second
 //   Logs    the SD card's drive logs (and, in the CAN version, CAN recordings): download
 //           or delete
-//   Update  upload a new firmware .bin (from .pio/build/<env>/firmware.bin)
+//   Update  upload a new firmware .bin (from .pio/build/<env>/firmware.bin). Refused unless
+//           "Allow upload" is ON at the display (Settings, UPDATE), so someone who only
+//           knows the password can't replace the firmware
 // It only shows what the display already reads: no extra requests go to the truck.
 // Every page or data request counts as activity, so the display stays awake while in use.
 
@@ -84,6 +87,8 @@ tick();
 static const char PORTAL_UPDATE[] PROGMEM = R"HTML(
 <main>
 <h2>Firmware update</h2>
+<p><b>First, on the CYD:</b> Settings &rarr; MORE to <b>UPDATE</b> &rarr; <b>Allow upload ON</b>.
+It turns itself off after a few minutes.</p>
 <p class="dim">Build in PlatformIO, then choose <b>.pio/build/esp32dev/firmware.bin</b> (or the sniffer /
 selftest build). The CYD restarts when the upload is done. Keep the phone close and don't power off.</p>
 <input type="file" id="f" accept=".bin"> <button onclick="up()">Upload</button>
@@ -242,10 +247,17 @@ inline void handleDelete() {
 
 // Firmware upload: the .bin is written to the spare app partition as it arrives, and
 // the CYD restarts into it once it has been checked
+static bool updateRefused = false;   // this upload arrived while uploads were locked
+
 inline void handleUpdateUpload() {
     HTTPUpload& up = webServer.upload();
     noteActivity();
     if (up.status == UPLOAD_FILE_START) {
+        updateRefused = !fwUploadUnlocked();
+        if (updateRefused) {
+            logDebug("WIFI", "Firmware upload refused: not allowed on the display (Settings, UPDATE)");
+            return;
+        }
         logDebug("WIFI", "Firmware upload started: " + up.filename);
 #ifdef CAN_LOGGER_H
         logStop();   // close any SD recording first
@@ -255,6 +267,8 @@ inline void handleUpdateUpload() {
         tft.setTextColor(TFT_WHITE, TFT_BLUE);
         tft.drawCentreString("UPDATING FIRMWARE - DON'T POWER OFF", 160, 4, 2);
         if (!Update.begin(UPDATE_SIZE_UNKNOWN)) logDebug("WIFI", "Update.begin failed: " + String(Update.errorString()));
+    } else if (updateRefused) {
+        return;   // ignore the rest of a refused upload
     } else if (up.status == UPLOAD_FILE_WRITE) {
         if (Update.write(up.buf, up.currentSize) != up.currentSize) {
             logDebug("WIFI", "Update.write failed: " + String(Update.errorString()));
@@ -269,6 +283,11 @@ inline void handleUpdateUpload() {
 }
 
 inline void handleUpdateDone() {
+    if (updateRefused) {
+        webServer.send(403, "text/plain", "Refused: allow it on the CYD first (Settings, MORE to UPDATE, "
+                                          "Allow upload ON), then upload again.");
+        return;
+    }
     bool ok = !Update.hasError() && Update.isFinished();
     webServer.send(200, "text/plain", ok ? "Done. The CYD is restarting with the new firmware."
                                          : "Update failed: " + String(Update.errorString()));
@@ -284,7 +303,8 @@ inline void wifiStart() {
     logDebug("WIFI", "Starting hotspot (free heap " + String(ESP.getFreeHeap() / 1024) + " KB)");
     WiFi.persistent(false);   // don't keep WiFi settings in flash (saves memory and flash writes)
     WiFi.mode(WIFI_AP);
-    if (!WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD)) {
+    if (wifiPassword.length() < 8) wifiPasswordNew();   // first start on this display
+    if (!WiFi.softAP(WIFI_AP_SSID, wifiPassword.c_str())) {
         // Not retried every pass: switch the hotspot off and on again to retry
         logDebug("WIFI", "Could not start the hotspot (free heap " + String(ESP.getFreeHeap() / 1024) +
                          " KB). The Settings page shows FAILED; switch it off and on to retry.");
@@ -321,6 +341,10 @@ inline void wifiStop() {
 // Call on every loop() pass: follows the Settings page switch and answers requests
 inline void wifiTick() {
     if (!settings.wifiOn) wifiStartFailed = false;   // switching it off clears a failure
+    if (wifiRestartNeeded) {                          // new password: restart the hotspot with it
+        wifiRestartNeeded = false;
+        if (wifiRunning) wifiStop();
+    }
     if (settings.wifiOn && !wifiRunning && !wifiStartFailed) wifiStart();
     else if (!settings.wifiOn && wifiRunning) wifiStop();
     if (wifiRunning) webServer.handleClient();
