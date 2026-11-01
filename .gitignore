@@ -10,3 +10,4 @@ __pycache__/
 *.pyc
 docs/IMG_*.jpeg
 *.code-workspace
+SNIF*.TXT

@@ -40,6 +40,18 @@ struct Metric {
 };
 
 static const Metric metrics[] = {
+#ifdef GAUGES_ONLY
+    // Only values that answer on CAN. Asking for one that doesn't costs a timeout every refresh.
+    // Page 0
+    {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN,    pollBoost,  NO_ALARM, NO_ALARM, true },
+    {"VEHICLE SPEED",  &valSpeed,  "MPH", TFT_SKYBLUE, pollSpeed,  NO_ALARM, NO_ALARM, true },
+    {"TRANS TEMP",     &valTFT,    "F",   TFT_MAGENTA, pollTFT,    NO_ALARM, &settings.tftHighF, true },
+    {"COOLANT TEMP",   &valECT,    "F",   TFT_RED,     pollECT,    NO_ALARM, &settings.ectHighF, true },
+    // Page 1
+    {"FICM MAIN PWR",  &valFICM,   "V",   TFT_GREEN,   pollFICM,   &settings.ficmLowV, NO_ALARM, true },
+    {"SYSTEM VOLTS",   &valVolts,  "V",   TFT_YELLOW,  pollVolts,  &settings.voltsLowV, &settings.voltsHighV, true },
+    {"ENGINE RPM",     &valRPM,    "",    TFT_WHITE,   pollRPM,    NO_ALARM, NO_ALARM, true },
+#else
     // Page 0
     {"TRANSFER CASE",  &valTCase,  "",    TFT_ORANGE,  pollTCase,  NO_ALARM, NO_ALARM, false},
     {"TURBO BOOST",    &valBoost,  "PSI", TFT_CYAN,    pollBoost,  NO_ALARM, NO_ALARM, true },
@@ -55,15 +67,21 @@ static const Metric metrics[] = {
     {"LF WHEEL SPD",   &valWheelLF,   "MPH", TFT_SKYBLUE, pollWheelLF,   NO_ALARM, NO_ALARM, false},
     {"RF WHEEL SPD",   &valWheelRF,   "MPH", TFT_SKYBLUE, pollWheelRF,   NO_ALARM, NO_ALARM, false},
     {"REAR AXLE SPD",  &valWheelRear, "MPH", TFT_CYAN,    pollWheelRear, NO_ALARM, NO_ALARM, false},
+#endif
 };
 static const int METRIC_COUNT = sizeof(metrics) / sizeof(metrics[0]);
 static_assert(METRIC_COUNT <= METRIC_PAGES * METRICS_PER_PAGE,
               "Metric table has more entries than METRIC_PAGES * METRICS_PER_PAGE");
+#ifdef GAUGES_ONLY
+static_assert(PAGE_DTC == METRIC_PAGES && PAGE_SETTINGS == PAGE_DTC + 1 && TOTAL_PAGES == METRIC_PAGES + 2,
+              "Page order: metric pages, DTC page, settings page");
+#else
 static_assert(METRIC_COUNT <= PAGE_ABS * METRICS_PER_PAGE + 3,
               "The ABS page's 4th slot is reserved for the ABS status card");
 static_assert(PAGE_DTC == METRIC_PAGES && PAGE_LOG == PAGE_DTC + 1 && PAGE_SNIFF == PAGE_LOG + 1 &&
               PAGE_SETTINGS == PAGE_SNIFF + 1 && TOTAL_PAGES == METRIC_PAGES + 4,
               "Page order: metric pages, DTC page, LOG page, SNIFF page, settings page");
+#endif
 
 inline bool metricVisible(int idx) {
     if (fullScreenMetric >= 0) return idx == fullScreenMetric;
@@ -73,6 +91,19 @@ inline bool metricVisible(int idx) {
 inline void pollVisibleMetrics() {
     for (int idx = 0; idx < METRIC_COUNT; idx++) {
         if (metricVisible(idx)) metrics[idx].poll();
+    }
+}
+
+// Reads the next on-screen value, taking turns (gauges build)
+inline void pollNextMetric() {
+    static int next = 0;
+    for (int i = 0; i < METRIC_COUNT; i++) {
+        int idx = (next + i) % METRIC_COUNT;
+        if (metricVisible(idx)) {
+            next = idx + 1;
+            metrics[idx].poll();
+            return;
+        }
     }
 }
 
@@ -153,8 +184,10 @@ inline void checkAlarms() {
     }
 }
 
+#ifndef GAUGES_ONLY
 #include "drive_log.h"   // needs the metrics table and alarm helpers above
 #include "bus_sniffer.h"
+#endif
 
 // ---- Status bar --------------------------------------------------------------
 // Drawn directly on the TFT. Only repaints when its text changes.
@@ -181,7 +214,11 @@ inline void updateStatusBar(bool force = false) {
             text = "PENDING ERROR CODES - SEE CODES PAGE";
             bg = TFT_YELLOW;   fg = TFT_BLACK;
         } else {
+#ifdef GAUGES_ONLY
+            text = "MONITOR ACTIVE - SWIPE FOR PAGES";
+#else
             text = "MONITOR ACTIVE - TAP TO SWIPE";
+#endif
             bg = TFT_DARKGREY; fg = TFT_BLACK;
         }
     } else if (btStackFailed) {
@@ -491,6 +528,7 @@ static const SettingRow SETTINGS_POWER[] = {
                          [](int d) { settings.sleepMin = stepChoice(settings.sleepMin, SLEEP_CHOICES, 6, d); }, false},
 };
 
+#ifndef GAUGES_ONLY
 static const SettingRow SETTINGS_WIFI[] = {
     {"Phone hotspot",    []() -> String { return String(!settings.wifiOn ? "OFF" : wifiStartFailed ? "FAILED" : "ON"); },
                          [](int) { settings.wifiOn = !settings.wifiOn; }, true},
@@ -512,6 +550,7 @@ static const SettingRow SETTINGS_UPDATE[] = {
     {"Turns off after",  []() -> String { return String(FW_UPLOAD_UNLOCK_MS / 60000) + " min"; }, nullptr, false},
     {"Upload page",      []() -> String { return String("192.168.4.1/update"); }, nullptr, false},
 };
+#endif
 
 struct SettingSection { const char* title; const SettingRow* rows; int count; };
 static const SettingSection SETTING_SECTIONS[] = {
@@ -519,8 +558,10 @@ static const SettingSection SETTING_SECTIONS[] = {
     {"ALARMS",  SETTINGS_ALARMS,  sizeof(SETTINGS_ALARMS) / sizeof(SettingRow)},
     {"VOLTAGE", SETTINGS_VOLTAGE, sizeof(SETTINGS_VOLTAGE) / sizeof(SettingRow)},
     {"POWER",   SETTINGS_POWER,   sizeof(SETTINGS_POWER) / sizeof(SettingRow)},
+#ifndef GAUGES_ONLY
     {"WIFI",    SETTINGS_WIFI,    sizeof(SETTINGS_WIFI) / sizeof(SettingRow)},
     {"UPDATE",  SETTINGS_UPDATE,  sizeof(SETTINGS_UPDATE) / sizeof(SettingRow)},
+#endif
 };
 static const int SETTING_SECTION_COUNT = sizeof(SETTING_SECTIONS) / sizeof(SettingSection);
 
@@ -571,6 +612,7 @@ inline void drawSettingsPageToCanvas() {
     drawSnifferButton(2, "NEXT >", TFT_WHITE, false);
 }
 
+#ifndef GAUGES_ONLY
 // ---- LOG page (drive log) -------------------------------------------------------------
 // REC / STOP the drive log, MARK a moment, NEXT page; shows the file, time, rows and size.
 inline String fmtDuration(unsigned long ms) {
@@ -676,6 +718,7 @@ inline void drawSniffPageToCanvas() {
     // Leaving the page while recording would stall the loop and lose data
     drawSnifferButton(2, "NEXT >", busSniffing ? TFT_DARKGREY : TFT_WHITE, false);
 }
+#endif
 
 // Builds one page (2x2 card grid or the DTC list, + page dots). Works the same connected or not.
 inline void buildPage(int pageNum) {
@@ -683,10 +726,12 @@ inline void buildPage(int pageNum) {
 
     if (pageNum == PAGE_DTC) {
         drawDtcPageToCanvas();
+#ifndef GAUGES_ONLY
     } else if (pageNum == PAGE_LOG) {
         drawLogPageToCanvas();
     } else if (pageNum == PAGE_SNIFF) {
         drawSniffPageToCanvas();
+#endif
     } else if (pageNum == PAGE_SETTINGS) {
         drawSettingsPageToCanvas();
     } else {
@@ -700,7 +745,11 @@ inline void buildPage(int pageNum) {
         if (pageNum == PAGE_ABS) drawAbsStatusCard(COL_X[1], ROW_Y[1]);
     }
 
+#ifdef GAUGES_ONLY
+    if (pageNum == PAGE_SETTINGS) return;   // footer buttons instead of page dots
+#else
     if (pageNum == PAGE_SETTINGS || pageNum == PAGE_LOG || pageNum == PAGE_SNIFF) return;   // footer buttons instead of page dots
+#endif
     int pipStart = 160 - ((TOTAL_PAGES - 1) * 10);
     for (int i = 0; i < TOTAL_PAGES; i++) {
         uint32_t pipColor = (i == pageNum) ? TFT_WHITE : TFT_DARKGREY;
@@ -813,6 +862,11 @@ inline void scrollToNextPage() {
     int nextPage = (currentPage + 1) % TOTAL_PAGES;
     logDebug("UI_NAV", "Triggering scroll: Swiping from Page " + String(currentPage) + " to Page " + String(nextPage));
 
+#ifdef GAUGES_ONLY
+    currentPage = nextPage;   // no animation: it stops touch and polling for about a second
+    dtcDetail = -1;
+    return;
+#endif
     for (int offset = 0; offset <= 320; offset += 32) {
         pushCanvas(offset, [&] { buildPage(currentPage); });
         pushCanvas(offset - 320, [&] { buildPage(nextPage); });
@@ -832,6 +886,7 @@ inline int metricAtPoint(int cx, int cy) {
     return (idx < METRIC_COUNT) ? idx : -1;
 }
 
+#ifndef GAUGES_ONLY
 // Taps on the LOG page: only the footer buttons do something
 inline void driveLogTap(int cx, int cy) {
     if (cy < SNIFF_FOOTER_Y) return;
@@ -852,6 +907,7 @@ inline void sniffTap(int cx, int cy) {
         scrollToNextPage();
     }
 }
+#endif
 
 // Taps on the Settings page (see drawSettingsPageToCanvas)
 inline void settingsTap(int cx, int cy) {
@@ -910,10 +966,12 @@ inline void handleTap(int sx, int sy) {
             logDebug("UI_NAV", "Full screen: " + String(metrics[idx].label));
             fullScreenMetric = idx;
         }
+#ifndef GAUGES_ONLY
     } else if (currentPage == PAGE_LOG) {
         driveLogTap(cx, cy);
     } else if (currentPage == PAGE_SNIFF) {
         sniffTap(cx, cy);
+#endif
     } else if (currentPage == PAGE_SETTINGS) {
         settingsTap(cx, cy);
     } else if (dtcDetail >= 0) {
@@ -932,6 +990,17 @@ inline void handleTap(int sx, int sy) {
         }
     }
     lastBusQuery = 0;   // refresh straight away for whatever is now on screen
+    drawCurrentScreen();
+}
+
+// A swipe: dir 1 = next page, -1 = previous page. Also closes a full-screen gauge or menu.
+inline void swipePage(int dir) {
+    logDebug("UI_NAV", "Swipe to page " + String((currentPage + dir + TOTAL_PAGES) % TOTAL_PAGES));
+    fullScreenMetric = -1;
+    menuMetric = -1;
+    dtcDetail = -1;
+    currentPage = (currentPage + dir + TOTAL_PAGES) % TOTAL_PAGES;
+    lastBusQuery = 0;
     drawCurrentScreen();
 }
 

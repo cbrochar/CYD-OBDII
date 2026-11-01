@@ -5,7 +5,39 @@
 #include "obd_engine.h"
 #include "display_ui.h"
 #include "power.h"
+#ifndef GAUGES_ONLY
 #include "wifi_portal.h"
+#endif
+
+#ifdef GAUGES_ONLY
+// Follows the finger and acts when it lifts: a sideways move is a swipe (left = next page,
+// right = previous), anything else is a tap where the finger came down. Called from loop()
+// and while waiting for the adapter (elmWaitHook), so a slow truck reply can't hold it up.
+static void serviceTouch() {
+    static bool down = false;
+    static int startX = 0, startY = 0, lastX = 0, lastY = 0;
+    static unsigned long lastSeen = 0;
+
+    if (touch.touched()) {
+        TS_Point pt = touch.getPoint();
+        lastX = constrain(map(pt.x, TOUCH_RAW_X_MIN, TOUCH_RAW_X_MAX, 0, 319), 0, 319);
+        lastY = constrain(map(pt.y, TOUCH_RAW_Y_MIN, TOUCH_RAW_Y_MAX, 0, 239), 0, 239);
+        if (!down) { down = true; startX = lastX; startY = lastY; }
+        lastSeen = millis();
+        return;
+    }
+    if (!down || millis() - lastSeen < TOUCH_RELEASE_MS) return;
+    down = false;
+
+    bool wasOff = screenIsOff;
+    noteActivity();
+    if (wasOff) return;   // this touch only wakes the screen
+
+    int dx = lastX - startX, dy = lastY - startY;
+    if (abs(dx) >= SWIPE_MIN_PX && abs(dx) > abs(dy)) swipePage(dx < 0 ? 1 : -1);
+    else handleTap(startX, startY);
+}
+#endif
 
 void setup() {
     Serial.begin(115200);
@@ -27,6 +59,9 @@ void setup() {
     touch.begin();
     touch.setRotation(1);
     logDebug("TOUCH_INIT", "XPT2046 Driver successfully initialized.");
+#ifdef GAUGES_ONLY
+    elmWaitHook = serviceTouch;
+#endif
     // The SD card isn't mounted here: REC or the phone's Logs tab mounts it when first
     // needed. Mounting it before Bluetooth and WiFi leaves too little heap for the hotspot.
 
@@ -89,6 +124,10 @@ void loop() {
         drawCurrentScreen();
     }
 
+#ifdef GAUGES_ONLY
+    // 2. Touch: swipes and taps
+    serviceTouch();
+#else
     // 2. Touch: one action per tap (finger must lift before the next tap counts, so a
     //    held finger can't hit a menu button that appears under it)
     static bool wasTouched = false;
@@ -108,6 +147,7 @@ void loop() {
     // Bus sniffer (SNIFF page): move what the adapter heard to the SD card. Early in the
     // loop, so the Bluetooth receive buffer is emptied often.
     sniffTick();
+#endif
 
     // Close the tap menu if nothing was pressed
     if (menuMetric >= 0 && millis() - menuShownAt > MENU_TIMEOUT_MS) {
@@ -142,9 +182,11 @@ void loop() {
     // 7. Save Settings page changes to flash
     settingsTick();
 
+#ifndef GAUGES_ONLY
     // 8. Phone hotspot (Settings page, WIFI)
     wifiTick();
 
     // 9. Drive log (LOG page): reads off-screen gauges and writes a row every second
     driveLogTick();
+#endif
 }

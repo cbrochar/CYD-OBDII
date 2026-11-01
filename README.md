@@ -117,8 +117,8 @@ Communications Network):
 | Engine RPM | PCM `7E0` | `010C` | (A×256 + B) / 4 | ✅ Confirmed |
 | System volts | PCM `7E0` | `0142` | (A×256 + B) / 1000 | ✅ Confirmed |
 | FICM main power | PCM `7E0` | `2209D0` | raw / 256 V | ✅ Confirmed |
-| Coolant temp | PCM `7E0` | `221139` | raw / 256 °C → °F | ⚠️ Not yet confirmed |
-| Trans temp | PCM `7E0` | `221E1C` | raw / 8 °F | ⚠️ Not yet confirmed |
+| Coolant temp | PCM `7E0` | `221139` | A × 2 °F | ✅ Confirmed against FORScan |
+| Trans temp | Transmission `7E1` | `221674` | (A×256 + B) / 8 °F | ✅ Confirmed against FORScan |
 | Engine trouble codes | PCM `7E0` | `03` | CAN Mode 03, multi-frame aware | ⚠️ Not yet confirmed |
 | Pending trouble codes | PCM `7E0` | `07` | CAN Mode 07, same format as Mode 03 | ⚠️ Not yet confirmed |
 | Transfer case | 4WD module, **K-line** | `4WD_SW`, `PLATE_A`–`D` | see the table above | ❌ Not on CAN: needs K-line access (code still tries `418F02`, which returns NO DATA) |
@@ -126,6 +126,18 @@ Communications Network):
 | ABS trouble codes | ABS module, **K-line** | `CCNTABS` count | | ❌ Not on CAN: needs K-line access |
 
 Turbo boost uses standard PID `0B`, which tops out at 255 kPa, so the gauge maxes out at about 22 psi of boost.
+
+## Gauges-only build
+
+`pio run -e gauges -t upload` builds a smaller firmware for a faster display. It has the
+boost, speed, trans temp, coolant, FICM, volts and RPM gauges, the codes page and Settings. It
+leaves out the phone hotspot, SD card, drive log, bus sniffer, and the transfer case and ABS
+pages, which can't answer on CAN. Saved settings carry over. To go back, upload the default
+build with USB: the gauges build has no phone update page.
+
+Touch comes first in this build: swipe left or right to change pages, and tap a gauge for its
+menu. It reads one value every 0.5 s, so a 4-gauge page updates about every 2 s, and off-page
+alarm gauges about every 5 s.
 
 ## Getting started
 
@@ -523,14 +535,17 @@ Ford-specific PIDs.
 
 ## Roadmap
 
-- [ ] Confirm the ABS and 4WD modules are on the K-line (pin 7): run `obd_logger.py --kline` at the
-      truck, or check FORScan's module list, which shows each module's bus
-- [ ] Find the numeric PIDs for `4WD_SW`, `PLATE_A`–`D`, `LF_WSPD`, `RF_WSPD`, `R_WSPD`
+- [ ] Remove screen swiping from the gauges build and change pages with touch buttons instead
+- [x] Confirm the ABS and 4WD modules are on the K-line (pin 7): ABS is module `28` and the GEM,
+      which runs 4WD on this truck, is module `52`
+- [x] Find the numeric PIDs for the 4WD switch, `PLATE_A`–`D`, `LF_WSPD`, `RF_WSPD` and `R_DIF_SPD`
+- [ ] Prove the wheel speed scaling with a rolling reading, after the ABS repair
 - [ ] Read the ABS and 4WD modules through the ELM327 on the K-line. Most ELM327 adapters also
       speak ISO 9141 (protocol 3), so this may need no new hardware, but the adapter has to switch
       protocols (and re-init the K-line, about 2–3 s) between the PCM on CAN and these modules
 - [ ] Test the WiFi firmware update
-- [ ] Confirm coolant temp, trans temp and DTC reads in a new truck log
+- [x] Confirm coolant temp and trans temp against FORScan
+- [ ] Confirm DTC reads in a new truck log
 - [ ] Hard-wire the CYD to the CAN bus instead of using the Bluetooth ELM327 adapter: in progress
       in [CYD-OBDII-CAN](https://github.com/cbrochar/CYD-OBDII-CAN) (TWAI + SN65HVD230), which also
       has a CAN sniffer with SD card recording

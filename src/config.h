@@ -35,10 +35,22 @@ const unsigned long MENU_TIMEOUT_MS = 4000;
 // the screen in turn. Fewer strips draw faster, more strips need less RAM. Here:
 // four quarter-height strips: Bluetooth Classic leaves too little RAM for the WiFi hotspot
 // and the SD card with a full-size canvas, and this frees about 51 KB.
+// The gauges-only build has neither, so it uses one strip and draws each page once.
+#ifdef GAUGES_ONLY
+const int CANVAS_STRIPS = 1;
+#else
 const int CANVAS_STRIPS = 4;
+#endif
 
 // Display layout / paging
 const int METRICS_PER_PAGE = 4;   // 2 x 2 grid of cards
+#ifdef GAUGES_ONLY
+const int METRIC_PAGES     = 2;   // card pages; must match the metric table in display_ui.h
+const int TOTAL_PAGES      = 4;   // metric pages + DTC list + settings
+const int PAGE_ABS         = -1;  // no ABS page: the module is on the K-line
+const int PAGE_DTC         = 2;   // stored trouble code list
+const int PAGE_SETTINGS    = 3;   // settings (saved in flash)
+#else
 const int METRIC_PAGES     = 3;   // card pages; must match the metric table in display_ui.h (12 metrics)
 const int TOTAL_PAGES      = 7;   // metric pages + DTC list + drive log + bus sniffer + settings
 const int PAGE_ABS         = 2;   // ABS wheel speeds (only polled while this page is shown)
@@ -46,6 +58,7 @@ const int PAGE_DTC         = 3;   // stored trouble code list
 const int PAGE_LOG         = 4;   // drive log to the SD card (REC / MARK)
 const int PAGE_SNIFF       = 5;   // bus sniffer: records raw traffic to the SD card (START / MARK)
 const int PAGE_SETTINGS    = 6;   // settings (saved in flash)
+#endif
 
 // Stored trouble codes kept for the DTC page (3 columns x 5 rows); pending codes too
 const int MAX_DTCS = 15;
@@ -61,14 +74,35 @@ const float ALARM_TFT_HIGH_F      = 220;     // transmission fluid above this
 const float ALARM_ECT_HIGH_F      = 230;     // coolant above this
 const float ALARM_VOLTS_LOW_V     = 11.8;    // system voltage below this (not charging)
 const float ALARM_VOLTS_HIGH_V    = 15.0;    // system voltage above this (overcharging)
+#ifdef GAUGES_ONLY
+const unsigned long ALARM_CHECK_INTERVAL_MS = 5000;
+#else
 const unsigned long ALARM_CHECK_INTERVAL_MS = 2000;
+#endif
 const unsigned long ALARM_BLINK_MS          = 500;
 
 // Live data refresh: the visible page is re-read this often (a refresh takes roughly
 // 100 ms per value, so in practice the page updates as fast as the truck answers)
+// The gauges build reads one on-screen value each time, so a 4-card page takes 2 s
+#ifdef GAUGES_ONLY
+const unsigned long POLL_INTERVAL_MS     = 500;
+#else
 const unsigned long POLL_INTERVAL_MS     = 250;
+#endif
+// Temperatures change slowly, and trans temp costs two extra header changes, so they're
+// read less often than the rest of the page
+const unsigned long TEMP_POLL_INTERVAL_MS = 2000;
 // Engine trouble codes are re-scanned this often when not on the DTC page
+#ifdef GAUGES_ONLY
+const unsigned long DTC_SCAN_INTERVAL_MS = 60000;
+#else
 const unsigned long DTC_SCAN_INTERVAL_MS = 10000;
+#endif
+
+// Swipes (gauges build): sideways travel that counts as a swipe, and how long the finger
+// must be gone before it counts as lifted
+const int SWIPE_MIN_PX                = 40;
+const unsigned long TOUCH_RELEASE_MS  = 40;
 
 // How long the background task waits between Bluetooth connection attempts
 const unsigned long BT_RETRY_INTERVAL_MS = 10000;

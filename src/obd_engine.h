@@ -14,6 +14,9 @@ inline uint16_t parseHexBytes(String rawResponse, int startCharIndex) {
 // Send one command and read everything up to the ELM '>' prompt, so each reply is
 // always matched to the command that asked for it (fixed delays let replies arrive
 // one query late over Bluetooth). Returns the reply without spaces, lines split by '\n'.
+// Runs while waiting for the adapter, so touch keeps working during a request (gauges build)
+static void (*elmWaitHook)() = nullptr;
+
 inline String elmCommand(const String& cmd, unsigned long timeoutMs = 500) {
     while (SerialBT.available()) SerialBT.read();   // drop anything stale
     SerialBT.print(cmd);
@@ -22,7 +25,14 @@ inline String elmCommand(const String& cmd, unsigned long timeoutMs = 500) {
     String resp = "";
     unsigned long start = millis();
     while (millis() - start < timeoutMs) {
-        if (!SerialBT.available()) continue;
+        if (!SerialBT.available()) {
+            if (elmWaitHook) {
+                unsigned long hookStart = millis();
+                elmWaitHook();
+                start += millis() - hookStart;   // a redraw doesn't count against the timeout
+            }
+            continue;
+        }
         char c = SerialBT.read();
         if (c == '>') return resp;
         if (c == '\r' || c == '\n') {
@@ -291,19 +301,30 @@ inline void pollFICM() {
     }
 }
 
-// Engine Coolant Temperature (ECT)
+// True once every TEMP_POLL_INTERVAL_MS; last holds when this value was last read
+inline bool tempPollDue(unsigned long& last) {
+    if (last && millis() - last < TEMP_POLL_INTERVAL_MS) return false;
+    last = max(1UL, millis());
+    return true;
+}
+
+// Engine Coolant Temperature (ECT). One data byte, raw x 2 = deg F: matched FORScan at 110 and 188 F.
 inline void pollECT() {
+    static unsigned long lastRead = 0;
+    if (!tempPollDue(lastRead)) return;
     String rawECT = queryCustomPID("7E0", "221139");
-    if (rawECT.startsWith("621139") && rawECT.length() >= 10) {
-        float ectC = (int16_t)parseHexBytes(rawECT, 6) / 256.0;
-        valECT = String((ectC * 1.8) + 32, 0);
+    if (rawECT.startsWith("621139") && rawECT.length() >= 8) {
+        valECT = String(strtol(rawECT.substring(6, 8).c_str(), NULL, 16) * 2);
     }
 }
 
-// Transmission Fluid Temperature (TFT)
+// Transmission Fluid Temperature (TFT), on the transmission module (7E1, replies on 7E9).
+// Two data bytes, raw / 8 = deg F: matched FORScan at 90 and 111 F.
 inline void pollTFT() {
-    String rawTFT = queryCustomPID("7E0", "221E1C");
-    if (rawTFT.startsWith("621E1C") && rawTFT.length() >= 10) {
+    static unsigned long lastRead = 0;
+    if (!tempPollDue(lastRead)) return;
+    String rawTFT = queryCustomPID("7E1", "221674");
+    if (rawTFT.startsWith("621674") && rawTFT.length() >= 10) {
          float tftF = ((int16_t)parseHexBytes(rawTFT, 6) / 8.0);
          valTFT = String(tftF, 0);
     }
@@ -337,6 +358,7 @@ inline void pollSpeed() {
 // Reads only the values on screen (the current page's cards, or the one full-screen
 // gauge) using each metric's poll function. Defined in display_ui.h with the metric table.
 inline void pollVisibleMetrics();
+inline void pollNextMetric();   // gauges build: one on-screen value per refresh
 // Reads alarm gauges that are off screen and logs alarms (display_ui.h)
 inline void checkAlarms();
 
@@ -346,7 +368,11 @@ inline void updateVehicleData() {
     if (!isConnected || busSniffing) return;
 
     unsigned long start = millis();
+#ifdef GAUGES_ONLY
+    pollNextMetric();
+#else
     pollVisibleMetrics();
+#endif
     checkAlarms();
     if (currentPage == PAGE_ABS && fullScreenMetric < 0) checkAbsDTCs();   // ABS status card
 
@@ -357,7 +383,11 @@ inline void updateVehicleData() {
     // Engine codes: every refresh on the DTC page, otherwise every DTC_SCAN_INTERVAL_MS
     // (the status bar warning still needs them)
     static unsigned long lastDtcScan = 0;
+#ifdef GAUGES_ONLY
+    if (lastDtcScan == 0 || millis() - lastDtcScan > DTC_SCAN_INTERVAL_MS) {
+#else
     if (currentPage == PAGE_DTC || lastDtcScan == 0 || millis() - lastDtcScan > DTC_SCAN_INTERVAL_MS) {
+#endif
         lastDtcScan = millis();
         checkStoredDTCs();
     }
