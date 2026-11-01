@@ -5,9 +5,7 @@
 #include "obd_engine.h"
 #include "display_ui.h"
 #include "power.h"
-#ifndef GAUGES_ONLY
 #include "wifi_portal.h"
-#endif
 
 #ifdef GAUGES_ONLY
 // Acts when the finger lifts: a tap where the finger came down (pages change with the
@@ -189,11 +187,9 @@ void loop() {
     // 7. Save Settings page changes to flash
     settingsTick();
 
-#ifndef GAUGES_ONLY
     // 8. Phone hotspot (Settings page, WIFI)
     wifiTick();
 
     // 9. Drive log (LOG page): reads off-screen gauges and writes a row every second
     driveLogTick();
-#endif
 }

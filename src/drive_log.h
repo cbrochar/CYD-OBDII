@@ -11,8 +11,9 @@
 //     seconds,TURBO BOOST (PSI),VEHICLE SPEED (MPH),...,alarms,mark,codes
 //     12.0,14.2,58,...,TRANS TEMP,MARK 1,P0470 P2291 pending:P0128
 // Values are always in F and MPH (the units setting only changes the screen), so a file
-// never mixes units. Only gauges marked "logged" in the metrics[] table are written, and
-// while recording they are read even when they're not on screen. Rows are only written
+// never mixes units. Only gauges marked "logged" in the metrics[] table are written (in the
+// gauges build, the ones turned on when REC is tapped), and while recording they are read
+// even when they're not on screen. Rows are only written
 // while the truck answers: never demo values (and, in the CAN version, not while the
 // sniffer page has the bus in listen-only mode). The codes column is filled on the first
 // row and whenever the stored or pending codes change.
@@ -28,6 +29,7 @@ static uint32_t driveMarks     = 0;
 static bool     driveMarkPending = false;  // a MARK goes into the next row
 static unsigned long driveStartMs = 0, driveLastRowMs = 0, driveLastFlushMs = 0;
 static String   driveLastCodes = "";
+static uint32_t driveColumns   = 0;       // metrics in this file, one bit each, fixed at REC
 
 inline String driveCodesText() {
     String s = "";
@@ -77,8 +79,10 @@ inline bool driveLogStart() {
     driveLogName = String(name + 1);
 
     String header = "seconds";
+    driveColumns = 0;
     for (int i = 0; i < METRIC_COUNT; i++) {
-        if (!metrics[i].logged) continue;
+        if (!metricLogged(i)) continue;
+        driveColumns |= 1UL << i;
         header += "," + String(metrics[i].label) + (metrics[i].unit[0] ? " (" + String(metrics[i].unit) + ")" : String(""));
     }
     driveFile.println(header + ",alarms,mark,codes");
@@ -104,7 +108,7 @@ inline void driveLogRow() {
     String row = String((millis() - driveStartMs) / 1000.0, 1);
     String alarms = "";
     for (int i = 0; i < METRIC_COUNT; i++) {
-        if (!metrics[i].logged) continue;
+        if (!((driveColumns >> i) & 1)) continue;
         const String& v = *metrics[i].value;
         row += "," + (isNumber(v) ? v : String(""));
         if (metricAlarmState(i) != 0) alarms += (alarms.length() ? " " : "") + String(metrics[i].label);
@@ -131,12 +135,17 @@ inline void driveLogTick() {
 
     static int nextPoll = 0;
     static unsigned long lastPoll = 0;
-    if (millis() - lastPoll >= DRIVE_LOG_INTERVAL_MS / METRIC_COUNT) {
+#ifdef GAUGES_ONLY
+    const unsigned long pollGapMs = POLL_INTERVAL_MS;   // keep the bus slow so touch stays quick
+#else
+    const unsigned long pollGapMs = DRIVE_LOG_INTERVAL_MS / METRIC_COUNT;
+#endif
+    if (millis() - lastPoll >= pollGapMs) {
         lastPoll = millis();
         for (int tries = 0; tries < METRIC_COUNT; tries++) {
             int i = nextPoll;
             nextPoll = (nextPoll + 1) % METRIC_COUNT;
-            if (metrics[i].logged && !metricVisible(i)) { metrics[i].poll(); break; }
+            if (((driveColumns >> i) & 1) && !metricVisible(i)) { metrics[i].poll(); break; }
         }
     }
 

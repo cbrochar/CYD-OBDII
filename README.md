@@ -35,7 +35,8 @@ Without an adapter it runs on demo values, so you can test the screens on the be
      to find the right PIDs, see [Bus sniffer](#bus-sniffer)
   7. **Settings**: brightness, units, alarm limits, power and WiFi, saved in flash, see
      [Settings page](#settings-page)
-- **Tap menu**: tap any gauge to get **NEXT PAGE** and **FULL SCREEN** buttons.
+- **Tap menu**: tap any gauge to get **NEXT PAGE** and **FULL SCREEN** buttons (**MOVE GAUGE** and
+  **FULL SCREEN** in the gauges build).
   Full screen shows that one gauge as large as it fits; tap again to go back.
 - **Gauge alarms**: a gauge that goes out of range (low FICM voltage, hot transmission or
   coolant, low or high system voltage) flashes red, and the status bar shows it on every page,
@@ -127,13 +128,16 @@ Communications Network):
 
 Turbo boost uses standard PID `0B`, which tops out at 255 kPa, so the gauge maxes out at about 22 psi of boost.
 
-## Gauges-only build
+## Gauges build
 
-`pio run -e gauges -t upload` builds a smaller firmware for a faster display. It has the
-boost, speed, trans temp, coolant, FICM, volts and RPM gauges, the codes page and Settings. It
-leaves out the phone hotspot, SD card, drive log, bus sniffer, and the transfer case and ABS
-pages, which can't answer on CAN. Saved settings carry over. To go back, upload the default
-build with USB: the gauges build has no phone update page.
+`pio run -e gauges -t upload` builds the firmware with a more responsive display. It has the
+boost, speed, trans temp, coolant, FICM, volts and RPM gauges, the codes page, the drive log,
+the phone hotspot and Settings. It leaves out the bus sniffer, and the transfer case and ABS
+pages, which can't answer on CAN. Saved settings carry over.
+
+The drive log records the gauges that are on when you tap REC, and the phone's Live tab shows
+them in the screen's order. While recording, one off-screen gauge is read each 0.5 s, so with
+many gauges on a value in the file can be several seconds old.
 
 Touch comes first in this build: change pages with the **< PREV** and **NEXT >** buttons along
 the bottom of the gauge and codes pages (no swiping), and tap a gauge for its menu. It reads one value every 0.5 s, so a 4-gauge page updates about every 2 s, and off-page
@@ -141,7 +145,13 @@ alarm gauges about every 5 s.
 
 Tap **MORE** on the Settings page to reach **GAUGES A** to **E**, and turn each gauge ON or OFF.
 The gauges that are on fill the pages in order, four to a page, and the pages grow or shrink to
-fit. A hidden gauge with an alarm limit is still checked in the background. The original seven
+fit.
+
+To rearrange them, tap a gauge and choose **MOVE GAUGE**. `< EARLIER` and `LATER >` then shift it
+one place at a time, across pages if needed, and **DONE** ends. The order is saved, and DEFAULTS
+on the Settings page puts it back.
+
+A hidden gauge with an alarm limit is still checked in the background. The original seven
 gauges are on by default. The optional ones are standard Mode 01 PIDs that the PCM answered in the
 October log, but they haven't been compared with FORScan yet:
 

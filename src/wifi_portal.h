@@ -141,8 +141,14 @@ inline String portalStatus() {
 inline void handleLive() {
     noteActivity();
     String j = "{\"status\":\"" + jsonEscape(portalStatus()) + "\",\"gauges\":[";
+#ifdef GAUGES_ONLY
+    for (int p = 0; p < shownGaugeCount; p++) {   // the chosen gauges, in the screen's order
+        int i = shownGauges[p];
+        if (p) j += ',';
+#else
     for (int i = 0; i < METRIC_COUNT; i++) {
         if (i) j += ',';
+#endif
         j += "{\"l\":\"" + jsonEscape(metrics[i].label) + "\",\"v\":\"" + jsonEscape(shownValue(i)) +
              "\",\"u\":\"" + jsonEscape(shownUnit(i)) + "\",\"a\":" + String(metricAlarmState(i) != 0 ? 1 : 0) + "}";
     }
@@ -181,7 +187,9 @@ inline bool isRecordingFile(const String& n) {
 #ifdef CAN_LOGGER_H
     if (logRecording && n.startsWith(logName)) return true;
 #endif
+#ifndef GAUGES_ONLY
     if (busSniffing && n == sniffName) return true;
+#endif
     return driveLogging && n == driveLogName;
 }
 
@@ -269,7 +277,9 @@ inline void handleUpdateUpload() {
         logStop();   // close any SD recording first
 #endif
         driveLogStop();
+#ifndef GAUGES_ONLY
         sniffStop();
+#endif
         tft.fillRect(0, 0, 320, STATUS_BAR_H, TFT_BLUE);
         tft.setTextColor(TFT_WHITE, TFT_BLUE);
         tft.drawCentreString("UPDATING FIRMWARE - DON'T POWER OFF", 160, 4, 2);

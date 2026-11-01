@@ -67,8 +67,8 @@ inline void enterDeepSleep(const String& why) {
                       (WAKE_CHECK_INTERVAL_MS > 0 ? ", or in " + String(WAKE_CHECK_INTERVAL_MS / 1000) +
                                                     " s to check the truck)" : String(")")));
     if (settingsDirty) settingsSave();
-#ifndef GAUGES_ONLY
     driveLogStop();   // close the drive log cleanly (drive_log.h, included before this file)
+#ifndef GAUGES_ONLY
     sniffStop(false, "going to sleep");
 #endif
     Serial.flush();

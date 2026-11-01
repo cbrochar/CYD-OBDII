@@ -114,18 +114,39 @@ inline uint32_t allGaugesMask() {
     return METRIC_COUNT >= 32 ? 0xFFFFFFFFUL : (1UL << METRIC_COUNT) - 1;
 }
 
-// Rebuilds the card pages from settings.gaugeMask. The codes and Settings pages follow them.
+// Keeps the saved order usable if the metric table has changed: each metric once, and any
+// new ones at the end
+inline void gaugeOrderClean() {
+    bool seen[METRIC_COUNT] = {false};
+    uint8_t clean[MAX_GAUGES];
+    memset(clean, 0xFF, sizeof(clean));
+    int n = 0;
+    for (int i = 0; i < MAX_GAUGES; i++) {
+        int idx = settings.gaugeOrder[i];
+        if (idx < METRIC_COUNT && !seen[idx]) { seen[idx] = true; clean[n++] = idx; }
+    }
+    for (int idx = 0; idx < METRIC_COUNT; idx++) {
+        if (!seen[idx]) clean[n++] = idx;
+    }
+    memcpy(settings.gaugeOrder, clean, sizeof(clean));
+}
+
+// Rebuilds the card pages from settings.gaugeMask and gaugeOrder. The codes and Settings
+// pages follow them.
 inline void gaugeLayoutUpdate() {
     if (!(settings.gaugeMask & allGaugesMask())) settings.gaugeMask = DEFAULT_GAUGE_MASK;
+    gaugeOrderClean();
     shownGaugeCount = 0;
-    for (int idx = 0; idx < METRIC_COUNT; idx++) {
+    for (int i = 0; i < METRIC_COUNT; i++) {
+        int idx = settings.gaugeOrder[i];
         bool shown = (settings.gaugeMask >> idx) & 1;
         gaugePosition[idx] = shown ? shownGaugeCount : -1;
         if (shown) shownGauges[shownGaugeCount++] = idx;
     }
     METRIC_PAGES  = (shownGaugeCount + METRICS_PER_PAGE - 1) / METRICS_PER_PAGE;
     PAGE_DTC      = METRIC_PAGES;
-    PAGE_SETTINGS = PAGE_DTC + 1;
+    PAGE_LOG      = PAGE_DTC + 1;
+    PAGE_SETTINGS = PAGE_LOG + 1;
     TOTAL_PAGES   = PAGE_SETTINGS + 1;
 }
 
@@ -136,6 +157,24 @@ inline int metricAtSlot(int page, int slot) {
 inline int metricSlot(int idx) { return max(gaugePosition[idx], 0) % METRICS_PER_PAGE; }
 inline bool metricOnPage(int idx, int page) {
     return gaugePosition[idx] >= 0 && gaugePosition[idx] / METRICS_PER_PAGE == page;
+}
+
+// Move mode: the tap menu's MOVE button picks a gauge, then the footer buttons shift it one
+// place at a time past the gauges that are on, across pages if need be, until DONE
+static int movingMetric = -1;
+
+inline void gaugeMove(int dir) {
+    int target = gaugePosition[movingMetric] + dir;
+    if (target < 0 || target >= shownGaugeCount) return;
+    int other = shownGauges[target];
+    for (int i = 0; i < METRIC_COUNT; i++) {
+        int idx = settings.gaugeOrder[i];
+        if (idx == movingMetric)  settings.gaugeOrder[i] = other;
+        else if (idx == other)    settings.gaugeOrder[i] = movingMetric;
+    }
+    gaugeLayoutUpdate();
+    currentPage = gaugePosition[movingMetric] / METRICS_PER_PAGE;
+    settingsChanged();
 }
 #else
 inline int metricAtSlot(int page, int slot) {
@@ -249,8 +288,17 @@ inline void checkAlarms() {
     }
 }
 
-#ifndef GAUGES_ONLY
+// Which gauges a new drive log records
+inline bool metricLogged(int idx) {
+#ifdef GAUGES_ONLY
+    return metrics[idx].logged && gaugePosition[idx] >= 0;
+#else
+    return metrics[idx].logged;
+#endif
+}
+
 #include "drive_log.h"   // needs the metrics table and alarm helpers above
+#ifndef GAUGES_ONLY
 #include "bus_sniffer.h"
 #endif
 
@@ -539,6 +587,13 @@ inline void drawSnifferButton(int i, const String& label, uint32_t color, bool f
 #ifdef GAUGES_ONLY
 // Page buttons under the gauges and the codes (gauges build): < PREV, page dots, NEXT >
 inline void drawNavFooter(int pageNum) {
+    if (movingMetric >= 0) {
+        int position = gaugePosition[movingMetric];
+        drawSnifferButton(0, "< EARLIER", position > 0 ? TFT_YELLOW : TFT_DARKGREY, false);
+        drawSnifferButton(1, "DONE", TFT_GREEN, false);
+        drawSnifferButton(2, "LATER >", position < shownGaugeCount - 1 ? TFT_YELLOW : TFT_DARKGREY, false);
+        return;
+    }
     drawSnifferButton(0, "< PREV", TFT_WHITE, false);
     drawSnifferButton(2, "NEXT >", TFT_WHITE, false);
     int pipStart = 160 - ((TOTAL_PAGES - 1) * 8);
@@ -613,7 +668,6 @@ static const SettingRow SETTINGS_POWER[] = {
                          [](int d) { settings.sleepMin = stepChoice(settings.sleepMin, SLEEP_CHOICES, 6, d); }, false},
 };
 
-#ifndef GAUGES_ONLY
 static const SettingRow SETTINGS_WIFI[] = {
     {"Phone hotspot",    []() -> String { return String(!settings.wifiOn ? "OFF" : wifiStartFailed ? "FAILED" : "ON"); },
                          [](int) { settings.wifiOn = !settings.wifiOn; }, true},
@@ -635,7 +689,6 @@ static const SettingRow SETTINGS_UPDATE[] = {
     {"Turns off after",  []() -> String { return String(FW_UPLOAD_UNLOCK_MS / 60000) + " min"; }, nullptr, false},
     {"Upload page",      []() -> String { return String("192.168.4.1/update"); }, nullptr, false},
 };
-#endif
 
 #ifdef GAUGES_ONLY
 // Gauge choices: one ON / OFF row per metric, four to a section. The last gauge can't be
@@ -662,10 +715,9 @@ static const SettingSection SETTING_SECTIONS[] = {
     {"ALARMS",  SETTINGS_ALARMS,  sizeof(SETTINGS_ALARMS) / sizeof(SettingRow)},
     {"VOLTAGE", SETTINGS_VOLTAGE, sizeof(SETTINGS_VOLTAGE) / sizeof(SettingRow)},
     {"POWER",   SETTINGS_POWER,   sizeof(SETTINGS_POWER) / sizeof(SettingRow)},
-#ifndef GAUGES_ONLY
     {"WIFI",    SETTINGS_WIFI,    sizeof(SETTINGS_WIFI) / sizeof(SettingRow)},
     {"UPDATE",  SETTINGS_UPDATE,  sizeof(SETTINGS_UPDATE) / sizeof(SettingRow)},
-#else
+#ifdef GAUGES_ONLY
     {"GAUGES A", SETTINGS_GAUGES1, 4},
     {"GAUGES B", SETTINGS_GAUGES2, 4},
     {"GAUGES C", SETTINGS_GAUGES3, 4},
@@ -722,7 +774,6 @@ inline void drawSettingsPageToCanvas() {
     drawSnifferButton(2, "NEXT >", TFT_WHITE, false);
 }
 
-#ifndef GAUGES_ONLY
 // ---- LOG page (drive log) -------------------------------------------------------------
 // REC / STOP the drive log, MARK a moment, NEXT page; shows the file, time, rows and size.
 inline String fmtDuration(unsigned long ms) {
@@ -779,6 +830,7 @@ inline void drawLogPageToCanvas() {
     drawSnifferButton(2, "NEXT >", TFT_WHITE, false);
 }
 
+#ifndef GAUGES_ONLY
 // ---- SNIFF page (bus sniffer) ---------------------------------------------------------
 // START / STOP recording, MODE (while stopped) or MARK (while recording), NEXT page.
 inline void drawSniffPageToCanvas() {
@@ -836,9 +888,9 @@ inline void buildPage(int pageNum) {
 
     if (pageNum == PAGE_DTC) {
         drawDtcPageToCanvas();
-#ifndef GAUGES_ONLY
     } else if (pageNum == PAGE_LOG) {
         drawLogPageToCanvas();
+#ifndef GAUGES_ONLY
     } else if (pageNum == PAGE_SNIFF) {
         drawSniffPageToCanvas();
 #endif
@@ -856,7 +908,7 @@ inline void buildPage(int pageNum) {
     }
 
 #ifdef GAUGES_ONLY
-    if (pageNum != PAGE_SETTINGS) drawNavFooter(pageNum);   // Settings has its own footer
+    if (pageNum != PAGE_SETTINGS && pageNum != PAGE_LOG) drawNavFooter(pageNum);   // they have their own footers
 #else
     if (pageNum == PAGE_SETTINGS || pageNum == PAGE_LOG || pageNum == PAGE_SNIFF) return;   // footer buttons instead of page dots
     int pipStart = 160 - ((TOTAL_PAGES - 1) * 10);
@@ -922,13 +974,20 @@ inline void drawMenuButton(int bx, const char* line1, const char* line2, uint32_
     canvas.drawCentreString(line2, bx + MENU_BTN_W / 2, MENU_BTN_Y + 38, 4);
 }
 
-inline void drawTapMenu(int idx) {
+inline void drawCardHighlight(int idx) {
     int slot = metricSlot(idx);
     int x = COL_X[slot % 2], y = ROW_Y[slot / 2];
-    canvas.drawRect(x - 2, y - 2, CARD_W + 4, CARD_H + 4, TFT_WHITE);   // highlight the tapped gauge
+    canvas.drawRect(x - 2, y - 2, CARD_W + 4, CARD_H + 4, TFT_WHITE);
     canvas.drawRect(x - 3, y - 3, CARD_W + 6, CARD_H + 6, TFT_WHITE);
+}
 
+inline void drawTapMenu(int idx) {
+    drawCardHighlight(idx);
+#ifdef GAUGES_ONLY
+    drawMenuButton(MENU_NEXT_X, "MOVE", "GAUGE", TFT_YELLOW);
+#else
     drawMenuButton(MENU_NEXT_X, "NEXT", "PAGE", TFT_WHITE);
+#endif
     drawMenuButton(MENU_FULL_X, "FULL", "SCREEN", metrics[idx].color);
 }
 
@@ -962,6 +1021,9 @@ inline void drawCurrentScreen() {
         } else {
             buildPage(currentPage);
             if (menuMetric >= 0) drawTapMenu(menuMetric);
+#ifdef GAUGES_ONLY
+            if (movingMetric >= 0) drawCardHighlight(movingMetric);
+#endif
             if (currentPage == PAGE_DTC && dtcDetail >= 0) drawDtcDetail();
         }
     });
@@ -995,7 +1057,6 @@ inline int metricAtPoint(int cx, int cy) {
     return metricAtSlot(currentPage, slot);
 }
 
-#ifndef GAUGES_ONLY
 // Taps on the LOG page: only the footer buttons do something
 inline void driveLogTap(int cx, int cy) {
     if (cy < SNIFF_FOOTER_Y) return;
@@ -1004,6 +1065,7 @@ inline void driveLogTap(int cx, int cy) {
     else                          scrollToNextPage();
 }
 
+#ifndef GAUGES_ONLY
 // Taps on the SNIFF page: only the footer buttons do something
 inline void sniffTap(int cx, int cy) {
     if (cy < SNIFF_FOOTER_Y) return;
@@ -1066,6 +1128,17 @@ inline void navTap(int cx) {
     dtcDetail = -1;
     logDebug("UI_NAV", String(dir < 0 ? "PREV" : "NEXT") + " to page " + String(currentPage));
 }
+
+// Taps during move mode: only the footer buttons do something
+inline void moveTap(int cx, int cy) {
+    if (cy < SNIFF_FOOTER_Y) return;
+    if (cx < SNIFF_BTN_X[1])      gaugeMove(-1);
+    else if (cx >= SNIFF_BTN_X[2]) gaugeMove(1);
+    else {
+        logDebug("UI_NAV", "Move done: " + String(metrics[movingMetric].label));
+        movingMetric = -1;
+    }
+}
 #endif
 
 // Handles one tap at screen coordinates (sx, sy).
@@ -1080,6 +1153,11 @@ inline void handleTap(int sx, int sy) {
     int cx = sx, cy = max(0, sy - CANVAS_Y);
     int dtcSlot = -1;
 
+#ifdef GAUGES_ONLY
+    if (movingMetric >= 0) {
+        moveTap(cx, cy);
+    } else
+#endif
     if (fullScreenMetric >= 0) {
         logDebug("UI_NAV", "Leaving full screen");
         fullScreenMetric = -1;
@@ -1087,17 +1165,23 @@ inline void handleTap(int sx, int sy) {
         int idx = menuMetric;
         menuMetric = -1;
         if (inButton(cx, cy, MENU_NEXT_X)) {
+#ifdef GAUGES_ONLY
+            movingMetric = idx;
+            logDebug("UI_NAV", "Moving: " + String(metrics[idx].label));
+#else
             scrollToNextPage();
+#endif
         } else if (inButton(cx, cy, MENU_FULL_X)) {
             logDebug("UI_NAV", "Full screen: " + String(metrics[idx].label));
             fullScreenMetric = idx;
         }
 #ifdef GAUGES_ONLY
-    } else if (currentPage != PAGE_SETTINGS && dtcDetail < 0 && cy >= SNIFF_FOOTER_Y) {
+    } else if (currentPage != PAGE_SETTINGS && currentPage != PAGE_LOG && dtcDetail < 0 && cy >= SNIFF_FOOTER_Y) {
         navTap(cx);
-#else
+#endif
     } else if (currentPage == PAGE_LOG) {
         driveLogTap(cx, cy);
+#ifndef GAUGES_ONLY
     } else if (currentPage == PAGE_SNIFF) {
         sniffTap(cx, cy);
 #endif

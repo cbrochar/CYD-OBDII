@@ -35,12 +35,7 @@ const unsigned long MENU_TIMEOUT_MS = 4000;
 // the screen in turn. Fewer strips draw faster, more strips need less RAM. Here:
 // four quarter-height strips: Bluetooth Classic leaves too little RAM for the WiFi hotspot
 // and the SD card with a full-size canvas, and this frees about 51 KB.
-// The gauges-only build has neither, so it uses one strip and draws each page once.
-#ifdef GAUGES_ONLY
-const int CANVAS_STRIPS = 1;
-#else
 const int CANVAS_STRIPS = 4;
-#endif
 
 // Display layout / paging
 const int METRICS_PER_PAGE = 4;   // 2 x 2 grid of cards
@@ -48,10 +43,11 @@ const int METRICS_PER_PAGE = 4;   // 2 x 2 grid of cards
 // The gauges chosen on the Settings page set how many card pages there are, so these
 // change at run time (gaugeLayoutUpdate in display_ui.h)
 static int METRIC_PAGES    = 2;   // card pages
-static int TOTAL_PAGES     = 4;   // metric pages + DTC list + settings
+static int TOTAL_PAGES     = 5;   // metric pages + DTC list + drive log + settings
 const int PAGE_ABS         = -1;  // no ABS page: the module is on the K-line
 static int PAGE_DTC        = 2;   // stored trouble code list
-static int PAGE_SETTINGS   = 3;   // settings (saved in flash)
+static int PAGE_LOG        = 3;   // drive log to the SD card (REC / MARK)
+static int PAGE_SETTINGS   = 4;   // settings (saved in flash)
 #else
 const int METRIC_PAGES     = 3;   // card pages; must match the metric table in display_ui.h (12 metrics)
 const int TOTAL_PAGES      = 7;   // metric pages + DTC list + drive log + bus sniffer + settings
@@ -65,6 +61,7 @@ const int PAGE_SETTINGS    = 6;   // settings (saved in flash)
 // Gauges shown by default (gauges build): one bit per entry of the metric table, saved in
 // flash. The first seven are the original gauges.
 const uint32_t DEFAULT_GAUGE_MASK = 0x7F;
+const int MAX_GAUGES = 32;   // room in the saved gauge order (settings.gaugeOrder)
 
 // Stored trouble codes kept for the DTC page (3 columns x 5 rows); pending codes too
 const int MAX_DTCS = 15;
